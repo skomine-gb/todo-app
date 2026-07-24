@@ -11,11 +11,7 @@ describe("TodoItem", () => {
   it("タスクのタイトルが表示される", () => {
     const todo: Todo = { id: "1", title: "牛乳を買う", completed: false };
 
-    render(
-      <ul>
-        <TodoItem todo={todo} />
-      </ul>,
-    );
+    render(<TodoItem todo={todo} />);
 
     expect(screen.getByText("牛乳を買う")).toBeTruthy();
   });
@@ -23,11 +19,7 @@ describe("TodoItem", () => {
   it("完了タスクには打ち消し線用の completed クラスが付く", () => {
     const todo: Todo = { id: "1", title: "部屋を掃除する", completed: true };
 
-    const { container } = render(
-      <ul>
-        <TodoItem todo={todo} />
-      </ul>,
-    );
+    const { container } = render(<TodoItem todo={todo} />);
 
     const item = container.querySelector("li");
     expect(item?.classList.contains("completed")).toBe(true);
@@ -36,11 +28,7 @@ describe("TodoItem", () => {
   it("未完了タスクには completed クラスが付かない", () => {
     const todo: Todo = { id: "1", title: "牛乳を買う", completed: false };
 
-    const { container } = render(
-      <ul>
-        <TodoItem todo={todo} />
-      </ul>,
-    );
+    const { container } = render(<TodoItem todo={todo} />);
 
     const item = container.querySelector("li");
     expect(item?.classList.contains("completed")).toBe(false);
