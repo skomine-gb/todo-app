@@ -11,8 +11,15 @@ export function TodoItem({ todo }: Props) {
     <li className={todo.completed ? "todo-item completed" : "todo-item"}>
       {/* Step2 は表示のみなので、チェックボックスは操作できない（readOnly）。
           完了切替の実装は STEP4 で行う。 */}
-      <input type="checkbox" checked={todo.completed} readOnly />
-      <span className="todo-title">{todo.title}</span>
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        readOnly
+        aria-labelledby={`todo-title-${todo.id}`}
+      />
+      <span id={`todo-title-${todo.id}`} className="todo-title">
+        {todo.title}
+      </span>
     </li>
   );
 }
