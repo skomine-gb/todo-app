@@ -12,4 +12,8 @@ export default defineConfig({
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
     options: { typeAware: true, typeCheck: true },
   },
+  test: {
+    // コンポーネント（DOM）を扱うテストのため、ブラウザ相当の DOM 環境を使う
+    environment: "jsdom",
+  },
 });

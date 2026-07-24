@@ -1,27 +1,20 @@
-import { useState } from "react";
-import typescriptLogo from "./assets/typescript.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
+import type { Todo } from "./types.ts";
+import { TodoList } from "./components/TodoList.tsx";
+
+// Step2 では状態管理（useState / useTodos）はまだ入れず、
+// 一覧の表示を確認するための「仮データ」を直接用意する。
+// 実際のデータ追加・保存は STEP3 以降で実装する。
+const sampleTodos: Todo[] = [
+  { id: "1", title: "牛乳を買う", completed: false },
+  { id: "2", title: "部屋を掃除する", completed: true },
+  { id: "3", title: "レポートを書く", completed: false },
+];
 
 export function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <section id="center">
-      <div className="hero">
-        <img src={heroImg} className="base" width={170} height={179} />
-        <img src={typescriptLogo} className="framework" alt="TypeScript logo" />
-        <img src={viteLogo} className="vite" alt="Vite logo" />
-      </div>
-      <div>
-        <h1>Get started</h1>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-        </p>
-      </div>
-      <button id="counter" type="button" className="counter" onClick={() => setCount((c) => c + 1)}>
-        Count is {count}
-      </button>
-    </section>
+    <main className="app">
+      <h1>My TODO</h1>
+      <TodoList todos={sampleTodos} />
+    </main>
   );
 }

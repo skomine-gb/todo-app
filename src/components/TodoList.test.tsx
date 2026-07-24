@@ -1,0 +1,28 @@
+import { afterEach, describe, expect, it } from "vite-plus/test";
+import { cleanup, render, screen } from "@testing-library/react";
+import type { Todo } from "../types.ts";
+import { TodoList } from "./TodoList.tsx";
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("TodoList", () => {
+  it("渡したタスクのタイトルがすべて表示される", () => {
+    const todos: Todo[] = [
+      { id: "1", title: "牛乳を買う", completed: false },
+      { id: "2", title: "部屋を掃除する", completed: true },
+    ];
+
+    render(<TodoList todos={todos} />);
+
+    expect(screen.getByText("牛乳を買う")).toBeTruthy();
+    expect(screen.getByText("部屋を掃除する")).toBeTruthy();
+  });
+
+  it("0件のときは「タスクがありません」と案内が表示される", () => {
+    render(<TodoList todos={[]} />);
+
+    expect(screen.getByText("タスクがありません")).toBeTruthy();
+  });
+});
