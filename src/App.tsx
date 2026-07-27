@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { Todo } from "./types.ts";
 import { TodoInput } from "./components/TodoInput.tsx";
 import { TodoList } from "./components/TodoList.tsx";
@@ -13,9 +13,9 @@ const initialTodos: Todo[] = [
 export function App() {
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
 
-  function addTodo(title: string) {
+  const addTodo = useCallback((title: string) => {
     setTodos((prev) => [...prev, { id: crypto.randomUUID(), title, completed: false }]);
-  }
+  }, []);
 
   return (
     <main className="app">
