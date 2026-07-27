@@ -10,7 +10,7 @@ export function TodoInput({ onAdd }: Props) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const title = value.trim();
@@ -22,7 +22,7 @@ export function TodoInput({ onAdd }: Props) {
     setError(null);
     onAdd(title);
     setValue("");
-  }
+  };
 
   return (
     <form className="todo-input-form" onSubmit={handleSubmit}>
