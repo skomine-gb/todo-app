@@ -33,4 +33,18 @@ describe("App", () => {
 
     expect(screen.getAllByRole("listitem")).toHaveLength(before);
   });
+
+  it("チェックボックスを操作すると完了／未完了が切り替わる", () => {
+    render(<App />);
+
+    const checkbox = screen.getByRole("checkbox", { name: "牛乳を買う" });
+    const item = checkbox.closest("li");
+    expect(item?.classList.contains("completed")).toBe(false);
+
+    fireEvent.click(checkbox);
+    expect(item?.classList.contains("completed")).toBe(true);
+
+    fireEvent.click(checkbox);
+    expect(item?.classList.contains("completed")).toBe(false);
+  });
 });
