@@ -46,6 +46,33 @@ h1 {
   text-align: center;
 }
 
+/* 入力欄 + 追加ボタン */
+.todo-input-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.todo-input-form input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.todo-input-form button {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  cursor: pointer;
+}
+
 /* タスク一覧 */
 .todo-list {
   list-style: none;
