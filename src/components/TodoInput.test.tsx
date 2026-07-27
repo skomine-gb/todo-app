@@ -30,4 +30,28 @@ describe("TodoInput", () => {
 
     expect(onAdd).not.toHaveBeenCalled();
   });
+
+  it("空文字・空白のみで追加を押すとエラーメッセージが表示される", () => {
+    const onAdd = vi.fn();
+    render(<TodoInput onAdd={onAdd} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+
+    expect(screen.getByRole("alert").textContent).toBe("タスクを入力してください");
+  });
+
+  it("エラー表示後に有効な文字を入力して追加するとエラーメッセージが消える", () => {
+    const onAdd = vi.fn();
+    render(<TodoInput onAdd={onAdd} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("タスクを入力"), {
+      target: { value: "牛乳を買う" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });

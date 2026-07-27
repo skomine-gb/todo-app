@@ -8,29 +8,39 @@ type Props = {
 
 export function TodoInput({ onAdd }: Props) {
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const title = value.trim();
     if (title === "") {
+      setError("タスクを入力してください");
       return;
     }
 
+    setError(null);
     onAdd(title);
     setValue("");
   }
 
   return (
     <form className="todo-input-form" onSubmit={handleSubmit}>
-      <input
-        type="text"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder="タスクを入力..."
-        aria-label="タスクを入力"
-      />
-      <button type="submit">追加</button>
+      <div className="todo-input-row">
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="タスクを入力..."
+          aria-label="タスクを入力"
+        />
+        <button type="submit">追加</button>
+      </div>
+      {error && (
+        <p className="todo-input-error" role="alert">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

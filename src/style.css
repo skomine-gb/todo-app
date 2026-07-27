@@ -4,6 +4,7 @@
   --bg: #fff;
   --border: #e5e4e7;
   --accent: #aa3bff;
+  --error: #d1293d;
 
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
 
@@ -22,6 +23,7 @@
     --bg: #16171d;
     --border: #2e303a;
     --accent: #c084fc;
+    --error: #f87171;
   }
 }
 
@@ -48,12 +50,15 @@ h1 {
 
 /* 入力欄 + 追加ボタン */
 .todo-input-form {
-  display: flex;
-  gap: 8px;
   margin-bottom: 16px;
 }
 
-.todo-input-form input {
+.todo-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.todo-input-row input {
   flex: 1;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -63,7 +68,7 @@ h1 {
   background: var(--bg);
 }
 
-.todo-input-form button {
+.todo-input-row button {
   padding: 8px 16px;
   border: 1px solid var(--accent);
   border-radius: 4px;
@@ -71,6 +76,12 @@ h1 {
   color: var(--bg);
   background: var(--accent);
   cursor: pointer;
+}
+
+.todo-input-error {
+  margin: 6px 0 0;
+  color: var(--error);
+  font-size: 14px;
 }
 
 /* タスク一覧 */
