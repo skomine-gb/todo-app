@@ -17,11 +17,17 @@ export function App() {
     setTodos((prev) => [...prev, { id: crypto.randomUUID(), title, completed: false }]);
   }, []);
 
+  const toggleTodo = useCallback((id: string) => {
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)),
+    );
+  }, []);
+
   return (
     <main className="app">
       <h1>My TODO</h1>
       <TodoInput onAdd={addTodo} />
-      <TodoList todos={todos} />
+      <TodoList todos={todos} onToggle={toggleTodo} />
     </main>
   );
 }

@@ -5,9 +5,10 @@ import { TodoItem } from "./TodoItem.tsx";
 // タスクが0件のときは案内メッセージを表示する（要件 F-2）。
 type Props = {
   todos: Todo[];
+  onToggle: (id: string) => void;
 };
 
-export function TodoList({ todos }: Props) {
+export function TodoList({ todos, onToggle }: Props) {
   if (todos.length === 0) {
     return <p className="todo-empty">タスクがありません</p>;
   }
@@ -15,7 +16,7 @@ export function TodoList({ todos }: Props) {
   return (
     <ul className="todo-list">
       {todos.map((todo) => (
-        <TodoItem key={todo.id} todo={todo} />
+        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} />
       ))}
     </ul>
   );
