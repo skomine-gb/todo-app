@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Todo } from "../types.ts";
 import { TodoList } from "./TodoList.tsx";
 
@@ -26,16 +27,17 @@ describe("TodoList", () => {
     expect(screen.getByText("タスクがありません")).toBeTruthy();
   });
 
-  it("チェックボックスを操作すると onToggle が対象の id で呼ばれる", () => {
+  it("チェックボックスを操作すると onToggle が対象の id で呼ばれる", async () => {
     const todos: Todo[] = [
       { id: "1", title: "牛乳を買う", completed: false },
       { id: "2", title: "部屋を掃除する", completed: true },
     ];
     const onToggle = vi.fn();
+    const user = userEvent.setup();
 
     render(<TodoList todos={todos} onToggle={onToggle} />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "部屋を掃除する" }));
+    await user.click(screen.getByRole("checkbox", { name: "部屋を掃除する" }));
 
     expect(onToggle).toHaveBeenCalledWith("2");
   });
