@@ -40,7 +40,7 @@ describe("TodoItem", () => {
 
     render(<TodoItem todo={todo} onToggle={onToggle} />);
 
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: todo.title }));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onToggle).toHaveBeenCalledWith("1");
