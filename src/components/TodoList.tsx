@@ -6,9 +6,11 @@ import { TodoItem } from "./TodoItem.tsx";
 type Props = {
   todos: Todo[];
   onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
 };
 
-export function TodoList({ todos, onToggle }: Props) {
+export function TodoList({ todos, onToggle, onDelete, onEdit }: Props) {
   if (todos.length === 0) {
     return <p className="todo-empty">タスクがありません</p>;
   }
@@ -16,7 +18,13 @@ export function TodoList({ todos, onToggle }: Props) {
   return (
     <ul className="todo-list">
       {todos.map((todo) => (
-        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} />
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onEdit={onEdit}
+        />
       ))}
     </ul>
   );

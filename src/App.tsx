@@ -23,11 +23,19 @@ export function App() {
     );
   }, []);
 
+  const deleteTodo = useCallback((id: string) => {
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  }, []);
+
+  const editTodo = useCallback((id: string, title: string) => {
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, title } : todo)));
+  }, []);
+
   return (
     <main className="app">
       <h1>My TODO</h1>
       <TodoInput onAdd={addTodo} />
-      <TodoList todos={todos} onToggle={toggleTodo} />
+      <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} onEdit={editTodo} />
     </main>
   );
 }

@@ -101,12 +101,54 @@ h1 {
 
 .todo-title {
   color: var(--text-h);
+  flex: 1;
 }
 
 /* 完了タスクは打ち消し線で表現 */
 .todo-item.completed .todo-title {
   text-decoration: line-through;
   color: var(--text);
+}
+
+/* 編集・削除ボタン */
+.todo-item-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.todo-item-actions button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-h);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+/* インライン編集フォーム */
+.todo-edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.todo-edit-form input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.todo-edit-form .todo-input-error {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 /* 0件のときの案内 */
