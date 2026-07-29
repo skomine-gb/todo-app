@@ -1,10 +1,22 @@
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Todo } from "./types.ts";
 import { App } from "./App.tsx";
+
+const initialTodos: Todo[] = [
+  { id: "1", title: "牛乳を買う", completed: false },
+  { id: "2", title: "部屋を掃除する", completed: true },
+  { id: "3", title: "レポートを書く", completed: false },
+];
+
+beforeEach(() => {
+  localStorage.setItem("todos", JSON.stringify(initialTodos));
+});
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
 });
 
 describe("App", () => {

@@ -1,10 +1,22 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Todo } from "../types.ts";
 
+const STORAGE_KEY = "todos";
+
+// 保存済みのタスク一覧を読み込む。未保存なら空配列から始める。
+function loadTodos(): Todo[] {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved ? (JSON.parse(saved) as Todo[]) : [];
+}
+
 // タスク一覧の状態と操作（追加・完了切替・削除・編集）をまとめたカスタムフック。
-// localStorage への永続化は STEP6 でここに追加する。
-export function useTodos(initialTodos: Todo[]) {
-  const [todos, setTodos] = useState<Todo[]>(initialTodos);
+// localStorage への保存・読み込みもここに集約する。
+export function useTodos() {
+  const [todos, setTodos] = useState<Todo[]>(loadTodos);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }, [todos]);
 
   const addTodo = useCallback((title: string) => {
     setTodos((prev) => [...prev, { id: crypto.randomUUID(), title, completed: false }]);
