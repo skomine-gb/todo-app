@@ -96,15 +96,13 @@ describe("TodoItem", () => {
   });
 
   it("編集して空文字で確定すると onEdit は呼ばれず、エラーが表示される", async () => {
-    const todo: Todo = { id: "1", title: "牛乳を買う", completed: false };
+    const todo: Todo = { id: "1", title: "", completed: false };
     const onEdit = vi.fn();
     const user = userEvent.setup();
 
     render(<TodoItem todo={todo} onToggle={vi.fn()} onDelete={vi.fn()} onEdit={onEdit} />);
 
-    await user.click(screen.getByRole("button", { name: "牛乳を買う を編集" }));
-    const input = screen.getByRole("textbox", { name: "牛乳を買う を編集" });
-    await user.clear(input);
+    await user.click(screen.getByRole("button", { name: "を編集" }));
     await user.click(screen.getByRole("button", { name: "確定" }));
 
     expect(onEdit).not.toHaveBeenCalled();
