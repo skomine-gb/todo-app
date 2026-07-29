@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { Todo } from "../types.ts";
 
 // タスク1件の表示を担当する部品。
@@ -13,7 +13,9 @@ type Props = {
   onEdit: (id: string, title: string) => void;
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
+// 未変更のタスクまで再レンダリングされていたことを console.log で確認したうえで
+// React.memo を追加している（判断の経緯は notes/学習メモ.md 参照）。
+function TodoItemComponent({ todo, onToggle, onDelete, onEdit }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(todo.title);
   const [error, setError] = useState<string | null>(null);
@@ -89,3 +91,5 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
     </li>
   );
 }
+
+export const TodoItem = memo(TodoItemComponent);
