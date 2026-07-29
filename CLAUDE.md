@@ -61,16 +61,26 @@ React + TypeScript で **TODO アプリ** を作る学習用プロジェクト�
 - **push**：Claude は実行しない。作者が手動で行う。
 - **PR 作成**：作成そのものは作者が手動で行う。ただし **PR のタイトルと本文は Claude が作成して提示する**。
 
+### Issue の書式
+
+- **タイトル**：`STEP <n>: <日本語の内容>`（例：`STEP 5: 削除・編集機能を実装する`）
+- **本文**：[.github/ISSUE_TEMPLATE/step-task.yml](./.github/ISSUE_TEMPLATE/step-task.yml) のフォームに従う（目的／やること／完了条件／備考）。
+
 ### コミットメッセージの形式
 
 - 形式：`<prefix>: <日本語の説明>`
-- prefix：`feat:`（機能追加）／`fix:`（修正）／`docs:`（ドキュメント）／`chore:`（環境整備・雑務）など
+- prefix：`feat:`（機能追加）／`fix:`（修正）／`docs:`（ドキュメント）／`test:`（テスト追加・修正）／`refactor:`（動作を変えないコード整理）／`chore:`（環境整備・雑務）など
 - 例：`feat: TODO 一覧画面を実装（TodoList / TodoItem）`
 
 ### PR タイトル・本文の形式
 
 - **タイトル**：日本語。コミットと同じ prefix の感覚でよい。
-- **本文**：日本語。やったことの要約に加え、`Closes #<Issue番号>` を入れる（マージ時に対象 Issue が自動で閉じる）。
+- **本文**：日本語。[.github/PULL_REQUEST_TEMPLATE.md](./.github/PULL_REQUEST_TEMPLATE.md) の見出し構成（概要／Issue #N との対応／変更内容／検証／スコープ外／関連Issue）に従う。「関連Issue」に `Closes #<Issue番号>` を入れる（マージ時に対象 Issue が自動で閉じる）。
+
+### ラベル運用
+
+- ラベルはコミット prefix と 1:1 対応の 6 つ：`feat` `fix` `docs` `test` `refactor` `chore`
+- **Issue と PR に、ブランチの prefix と同じラベルを 1 つ付ける**（1 STEP = 1 Issue = 1 ブランチ = 1 PR なので機械的に決まる）。
 
 ### Issue・実装・PR の整合性（重要）
 
