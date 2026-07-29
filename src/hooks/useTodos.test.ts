@@ -32,6 +32,22 @@ describe("useTodos", () => {
     expect(result.current.todos).toEqual(initialTodos);
   });
 
+  it("壊れた JSON が保存されていても空配列で始まる", () => {
+    localStorage.setItem("todos", "{abc");
+
+    const { result } = renderHook(() => useTodos());
+
+    expect(result.current.todos).toEqual([]);
+  });
+
+  it("配列でない JSON が保存されていても空配列で始まる", () => {
+    localStorage.setItem("todos", JSON.stringify({ id: "1" }));
+
+    const { result } = renderHook(() => useTodos());
+
+    expect(result.current.todos).toEqual([]);
+  });
+
   it("todos が変わると localStorage に保存される", () => {
     const { result } = renderHook(() => useTodos());
 
