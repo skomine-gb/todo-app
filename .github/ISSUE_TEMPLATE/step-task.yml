@@ -1,0 +1,44 @@
+name: STEP 実装タスク
+description: 実装ステップ（docs/05-directory-and-steps.md の STEP）用の Issue
+title: "STEP : "
+labels:
+  - feat
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: 何をするか＋対応する要件番号（F-n）＋参考にする docs へのリンク
+      placeholder: |-
+        〇〇できるようにする。対応要件は F-n。
+        参考: [docs/01-requirements.md](../blob/main/docs/01-requirements.md)
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: やること
+      description: チェックボックスで列挙する。テストも必ず含める。
+      value: |-
+        - [ ]
+        - [ ] 併せてテストを書く（）
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件
+      value: |-
+        - [ ] `vp check`（整形・Lint・型チェック）が通る
+        - [ ] `vp test` が通る
+        - [ ] `vp dev` でブラウザを開き、動作を確認した
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 備考
+      description: 想定するブランチ名と、今回のスコープ外を明記する
+      placeholder: |-
+        ブランチ: feat/stepN-xxx を想定。
+        〇〇は STEP n+1 のスコープ（今回はやらない）。
