@@ -1,8 +1,20 @@
+packages:
+  - "."
+
+# wrangler / vitest-pool-workers が依存する workerd・esbuild の
+# postinstall ビルドを許可する
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.5
   vite-plus: 0.2.5
 overrides:
   vite: "catalog:"
+  # vite-plus 同梱の vitest と直接インストールする vitest（vitest-pool-workers の peer）を
+  # 厳密一致させる。vite-plus を更新するときはこの pin も同梱バージョンに合わせて更新すること
+  vitest: 4.1.10
 peerDependencyRules:
   allowAny:
     - vite

@@ -5,24 +5,36 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "tsc && vp build",
+    "build": "vp build",
     "preview": "vp preview",
+    "test:worker": "vp exec vitest run -c vitest.workers.config.ts",
+    "deploy": "vp build && wrangler deploy",
+    "cf:preview": "vp build && wrangler dev",
+    "types": "wrangler types",
+    "postinstall": "wrangler types && vp fmt worker-configuration.d.ts --write",
     "prepare": "vp config"
   },
   "dependencies": {
+    "hono": "^4.12.32",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.48.0",
+    "@cloudflare/vitest-pool-workers": "^0.19.0",
+    "@cloudflare/workers-types": "^5.20260728.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^26.1.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vitest": "4.1.10",
+    "wrangler": "^4.115.0"
   },
   "devEngines": {
     "packageManager": {

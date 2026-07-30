@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "todo-app",
+  // ローカルの workerd（miniflare / wrangler が同梱）が対応している日付にすること。
+  // 新しすぎるとテストや wrangler dev が起動できない
+  "compatibility_date": "2026-07-22",
+  "main": "./src/server/index.ts",
+  "assets": {
+    // 注意: "./dist"（トップレベル）を指定すると Worker ビルド成果物まで
+    // 静的配信対象に含まれてしまう。SPA ビルド成果物のみを指す
+    // "./dist/client" を指定すること
+    "directory": "./dist/client",
+    // SPA なのでアセットに一致しないパスは index.html にフォールバックする
+    "not_found_handling": "single-page-application",
+  },
+}
