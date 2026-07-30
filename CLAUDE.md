@@ -46,10 +46,13 @@ React + TypeScript で **TODO アプリ** を作る学習用プロジェクト�
 各 STEP の終わりに以下を通す。すべて `vp` 経由で実行する。
 
 - `vp check` … 整形・Lint・型チェック
-- `vp test` … テスト実行
-- `vp dev` … ブラウザで動作確認
+- `vp test` … フロントエンドのテスト（jsdom）
+- `vp run test:worker` … バックエンドのテスト（Workers ランタイム）
+- `vp dev` … ブラウザで動作確認（SPA + API を同時起動。http://localhost:5173 で SPA、同じポートの `/api/*` が API）
 
-`vp check` と `vp test` が通って初めて STEP 完了とみなす。環境に不調があれば `vp env doctor` の出力を添えて相談する。
+`vp check`・`vp test`・`vp run test:worker` が通って初めて STEP 完了とみなす。環境に不調があれば `vp env doctor` の出力を添えて相談する。
+
+本番相当の確認（Static Assets 配信込み）は `vp run cf:preview`（ビルドして `wrangler dev` で起動）。`wrangler.jsonc` の bindings や `main` を変更したときは `vp run types` で `worker-configuration.d.ts` を再生成してコミットする。
 
 ## Git 操作（コミット・push・PR）
 
@@ -90,17 +93,27 @@ React + TypeScript で **TODO アプリ** を作る学習用プロジェクト�
 - **実装と照らす**：PR 本文の記述は、実際の変更内容（`git diff` で確認できる範囲）と一致させる。やっていないことを書かない／やったことを書き漏らさない。
 - **ズレを見つけたら黙って埋めない**：Issue で宣言したのに実装していない項目や、Issue にないのに実装した項目があれば、PR 本文でごまかさず **その差分を作者に伝える**。Issue を直すか、実装を直すか、PR に but 書きするかは作者が判断する。
 
-## ディレクトリ構成（`src/` が実装対象）
+## ディレクトリ構成（`src/` と `test/` が実装対象）
+
+単一の Cloudflare Workers プロジェクトに SPA と API Worker を同居させる構成（参考: [skanehira/fullstack-worker-template](https://github.com/skanehira/fullstack-worker-template)）。`@cloudflare/vite-plugin` が `vp dev` / `vp build` で両方をまとめて面倒を見る。
 
 ```
 src/
-├── main.tsx          起動エントリ（用意済み・触らない）
-├── App.tsx           全体のまとめ役
-├── types.ts          Todo 型
-├── style.css         見た目
-├── hooks/            状態の仕組み（useTodos など）
-└── components/       画面の部品（TodoInput / TodoList / TodoItem）
+├── front/            React SPA（フロントエンド）
+│   ├── main.tsx      起動エントリ（用意済み・触らない）
+│   ├── App.tsx       全体のまとめ役
+│   ├── style.css     見た目
+│   ├── hooks/        状態の仕組み（useTodos など）
+│   └── components/   画面の部品（TodoInput / TodoList / TodoItem）
+├── server/           Hono の API Worker（wrangler.jsonc の main）
+│   ├── index.ts      basePath("/api") でルートをまとめる
+│   └── routes/       エンドポイントごとのルート定義（health など）
+└── shared/
+    └── types.ts      front / server で共有する型（Todo 型）
+test/worker/          バックエンドのテスト（@cloudflare/vitest-pool-workers。vitest を直接 import する）
 ```
 
-- 型は `types.ts` に集約、部品は `components/`、状態ロジックは `hooks/` に置く。
-- localStorage の保存・読み込みは `hooks/useTodos.ts` の 1 か所に集約する。
+- 型は `src/shared/types.ts` に集約、部品は `front/components/`、状態ロジックは `front/hooks/` に置く。
+- localStorage の保存・読み込みは `front/hooks/useTodos.ts` の 1 か所に集約する。
+- フロントのテストは実装と同じディレクトリに置く（コロケーション）。バックエンドのテストだけ `test/worker/` に置く（Workers ランタイムで動かすため設定が別）。
+- 本番は Worker が `dist/client`（SPA のビルド成果物）を Cloudflare Static Assets として配信する単一デプロイ（`wrangler.jsonc` の `assets`）。

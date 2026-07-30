@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Todo } from "../types.ts";
+import type { Todo } from "../../shared/types.ts";
 
 const STORAGE_KEY = "todos";
 

@@ -30,3 +30,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Cloudflare Workers
+.wrangler/
+.dev.vars*
+!.dev.vars.example
+*.tsbuildinfo
