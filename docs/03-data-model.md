@@ -10,7 +10,7 @@
 | `title`     | タスクの内容（編集で書き換える対象） | `string`  | `"牛乳を買う"`   |
 | `completed` | 完了しているか                       | `boolean` | `false`          |
 
-`id` は、同じ `title` のタスクがあっても1件ずつを区別し、完了切り替え・削除・編集の対象を特定するために使う。生成にはブラウザ標準の `crypto.randomUUID()` を用いる。
+`id` は、同じ `title` のタスクがあっても1件ずつを区別し、完了切り替え・削除・編集の対象を特定するために使う。生成にはブラウザ標準の `crypto.randomUUID()` を用いる。フェーズ2 では採番がサーバー側に移る（[07](./07-db-schema.md) §2）。
 
 ## 2. 型定義
 
@@ -33,6 +33,8 @@ export type Todo = {
 | 編集（F-5）         | 対象 `id` の `title` を新しい文字列に置き換える |
 
 ## 3. 永続化（localStorage）
+
+これは **フェーズ1 の方式**。フェーズ2 では保存先を D1（サーバー側の SQLite）に置き換える（[07](./07-db-schema.md)）。
 
 localStorageは文字列しか保存できないため、JSONに変換して読み書きする。保存キーは `"todos"` とする。
 
@@ -67,4 +69,4 @@ flowchart TD
 - タスク1件は `id` / `title` / `completed`（型名 `Todo`）、一覧は `Todo[]`
 - `id` は `crypto.randomUUID()` で採番し、完了・削除・編集の対象特定に使う
 - 各操作は `Todo[]` への「追加・反転・除去・title置換」で表現する
-- localStorageへはJSON文字列（キー `"todos"`）で永続化する
+- localStorageへはJSON文字列（キー `"todos"`）で永続化する（フェーズ1）。フェーズ2 では D1 に置き換える（[07](./07-db-schema.md)）

@@ -23,8 +23,8 @@ React + TypeScript で **TODO アプリ** を作る学習用プロジェクト�
 
 - 設計ドキュメント: [docs/](./docs/)（要件・アーキテクチャ・データモデル・UI・実装ステップ）
 - 個人メモ: [notes/](./notes/)（学習メモ・開発の進め方。※提出しない）
-- 技術スタック: React 19 / TypeScript / Vite+ / localStorage（サーバー・DB は次フェーズ）
-- 状態管理は React 標準の `useState` のみ。Redux などの大きなライブラリは入れない。
+- 技術スタック: React 19 / TypeScript / Vite+ / SWR / Hono / Cloudflare Workers + D1。現在は **フェーズ2（バックエンド開発とフロント結合、STEP 8〜12）** に着手中（設計は [docs/06](./docs/06-backend-architecture.md)〜[docs/09](./docs/09-backend-steps.md)）。フェーズ1 の保存先だった localStorage は STEP 11 で D1 に置き換える。
+- 状態管理は React 標準の `useState` のみ。Redux などの大きなライブラリは入れない。サーバーデータの取得・キャッシュ・再取得は SWR に任せる（STEP 11 で導入）。
 
 ## 応答スタイル
 
