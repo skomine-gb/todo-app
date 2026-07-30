@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import type { Todo } from "../types.ts";
+import type { Todo } from "../../shared/types.ts";
 
 // タスク1件の表示を担当する部品。
 // 完了切替（F-3）はチェックボックスの操作で行う。削除（F-4）はボタン1つで即座に反映し、

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import type { Todo } from "../types.ts";
+import type { Todo } from "../../shared/types.ts";
 import { useTodos } from "./useTodos.ts";
 
 afterEach(() => {

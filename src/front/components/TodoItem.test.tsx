@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Todo } from "../types.ts";
+import type { Todo } from "../../shared/types.ts";
 import { TodoItem } from "./TodoItem.tsx";
 
 afterEach(() => {

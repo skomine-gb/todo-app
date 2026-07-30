@@ -1,4 +1,4 @@
-import type { Todo } from "../types.ts";
+import type { Todo } from "../../shared/types.ts";
 import { TodoItem } from "./TodoItem.tsx";
 
 // 一覧のまとめ役。渡されたタスクの数だけ TodoItem を並べる。
