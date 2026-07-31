@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import type { Todo } from "../../shared/types.ts";
 
 // D1 の行（completed が 0/1 の INTEGER）を Todo 型（completed: boolean）へ変換する
@@ -6,6 +7,11 @@ const toTodo = (row: { id: string; title: string; completed: number }): Todo => 
   id: row.id,
   title: row.title,
   completed: row.completed === 1,
+});
+
+// trim() を通した上で1文字以上であることを検査する（空文字・空白のみを弾く）
+export const createTodoSchema = z.object({
+  title: z.string().trim().min(1),
 });
 
 export const todosRoute = new Hono<{ Bindings: Env }>()
@@ -18,18 +24,14 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
   })
   .post("/todos", async (c) => {
     const body = await c.req.json().catch(() => null);
-    if (body === null || typeof body !== "object") {
-      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
-    }
-
-    const title = (body as Record<string, unknown>).title;
-    if (typeof title !== "string" || title.trim().length === 0) {
+    const parsed = createTodoSchema.safeParse(body);
+    if (!parsed.success) {
       return c.json({ error: "title を入力してください" }, 400);
     }
 
     const id = crypto.randomUUID();
     await c.env.DB.prepare("INSERT INTO todos (id, title, completed) VALUES (?, ?, 0)")
-      .bind(id, title.trim())
+      .bind(id, parsed.data.title)
       .run();
 
     return c.body(null, 201);
