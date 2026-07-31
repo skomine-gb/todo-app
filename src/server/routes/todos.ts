@@ -18,18 +18,18 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
   })
   .post("/todos", async (c) => {
     const body = await c.req.json().catch(() => null);
-    const title =
-      body !== null && typeof body === "object"
-        ? (body as Record<string, unknown>).title
-        : undefined;
+    if (body === null || typeof body !== "object") {
+      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+    }
 
+    const title = (body as Record<string, unknown>).title;
     if (typeof title !== "string" || title.trim().length === 0) {
       return c.json({ error: "title を入力してください" }, 400);
     }
 
     const id = crypto.randomUUID();
     await c.env.DB.prepare("INSERT INTO todos (id, title, completed) VALUES (?, ?, 0)")
-      .bind(id, title)
+      .bind(id, title.trim())
       .run();
 
     return c.body(null, 201);

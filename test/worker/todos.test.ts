@@ -39,6 +39,41 @@ describe("POST /api/todos", () => {
     expect(todos[0].id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 
+  it("title の前後の空白は取り除いて保存される", async () => {
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ title: "  牛乳を買う  " }),
+    });
+
+    const response = await SELF.fetch("https://example.com/api/todos");
+    const todos = (await response.json()) as { title: string }[];
+
+    expect(todos[0].title).toBe("牛乳を買う");
+  });
+
+  it("id / completed をクライアントが送っても無視される（サーバー採番・completed は常に false）", async () => {
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ title: "牛乳を買う", id: "client-supplied-id", completed: true }),
+    });
+
+    const response = await SELF.fetch("https://example.com/api/todos");
+    const todos = (await response.json()) as { id: string; completed: boolean }[];
+
+    expect(todos[0].id).not.toBe("client-supplied-id");
+    expect(todos[0].completed).toBe(false);
+  });
+
+  it("title キー自体が無い場合は 400 を返す", async () => {
+    const response = await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
   it("空文字の title は 400 を返す", async () => {
     const response = await SELF.fetch("https://example.com/api/todos", {
       method: "POST",
