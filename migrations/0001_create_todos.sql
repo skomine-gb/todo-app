@@ -1,0 +1,7 @@
+-- Migration number: 0001 	 2026-07-30T03:53:48.938Z
+
+CREATE TABLE todos (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  completed INTEGER NOT NULL DEFAULT 0
+);
