@@ -14,6 +14,14 @@ export const createTodoSchema = z.object({
   title: z.string().trim().min(1),
 });
 
+// title・completed とも省略可能にしつつ、refine で「両方とも未指定」を拒否する
+export const updateTodoSchema = z
+  .object({
+    title: z.string().trim().min(1).optional(),
+    completed: z.boolean().optional(),
+  })
+  .refine((data) => data.title !== undefined || data.completed !== undefined);
+
 export const todosRoute = new Hono<{ Bindings: Env }>()
   .get("/todos", async (c) => {
     const { results } = await c.env.DB.prepare(
@@ -39,4 +47,39 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
       .run();
 
     return c.body(null, 201);
+  })
+  .patch("/todos/:id", async (c) => {
+    const body = await c.req.json().catch(() => null);
+    if (body === null || typeof body !== "object") {
+      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+    }
+
+    const parsed = updateTodoSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "title または completed を正しく指定してください" }, 400);
+    }
+
+    const { title, completed } = parsed.data;
+    const result = await c.env.DB.prepare(
+      "UPDATE todos SET title = COALESCE(?, title), completed = COALESCE(?, completed) WHERE id = ?",
+    )
+      .bind(title ?? null, completed === undefined ? null : Number(completed), c.req.param("id"))
+      .run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+    }
+
+    return c.body(null, 204);
+  })
+  .delete("/todos/:id", async (c) => {
+    const result = await c.env.DB.prepare("DELETE FROM todos WHERE id = ?")
+      .bind(c.req.param("id"))
+      .run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+    }
+
+    return c.body(null, 204);
   });
