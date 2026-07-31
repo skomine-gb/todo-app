@@ -9,6 +9,12 @@ const toTodo = (row: { id: string; title: string; completed: number }): Todo => 
   completed: row.completed === 1,
 });
 
+// JSON パース失敗・非オブジェクト（null・配列・文字列など）はどちらも null にまとめる
+const readJsonObjectBody = async (req: { json: () => Promise<unknown> }): Promise<unknown> => {
+  const body = await req.json().catch(() => null);
+  return body !== null && typeof body === "object" ? body : null;
+};
+
 // trim() を通した上で1文字以上であることを検査する（空文字・空白のみを弾く）
 export const createTodoSchema = z.object({
   title: z.string().trim().min(1),
@@ -20,7 +26,9 @@ export const updateTodoSchema = z
     title: z.string().trim().min(1).optional(),
     completed: z.boolean().optional(),
   })
-  .refine((data) => data.title !== undefined || data.completed !== undefined);
+  .refine((data) => data.title !== undefined || data.completed !== undefined, {
+    message: "title または completed のいずれかを指定してください",
+  });
 
 export const todosRoute = new Hono<{ Bindings: Env }>()
   .get("/todos", async (c) => {
@@ -31,8 +39,8 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
     return c.json(results.map(toTodo));
   })
   .post("/todos", async (c) => {
-    const body = await c.req.json().catch(() => null);
-    if (body === null || typeof body !== "object") {
+    const body = await readJsonObjectBody(c.req);
+    if (body === null) {
       return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
     }
 
@@ -49,8 +57,8 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
     return c.body(null, 201);
   })
   .patch("/todos/:id", async (c) => {
-    const body = await c.req.json().catch(() => null);
-    if (body === null || typeof body !== "object") {
+    const body = await readJsonObjectBody(c.req);
+    if (body === null) {
       return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
     }
 

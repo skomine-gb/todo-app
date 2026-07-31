@@ -90,6 +90,12 @@ describe("updateTodoSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("JSON でないボディ（null）を拒否する", () => {
+    const result = updateTodoSchema.safeParse(null);
+
+    expect(result.success).toBe(false);
+  });
+
   it("id など余分なキーは無視される", () => {
     const result = updateTodoSchema.safeParse({ title: "牛乳を買う", id: "client-supplied-id" });
 

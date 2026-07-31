@@ -153,6 +153,16 @@ describe("PATCH /api/todos/:id", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: expect.any(String) });
   });
+
+  it("JSON でないボディは 400 を返す（存在しない id でも先にボディを検査する）", async () => {
+    const response = await SELF.fetch("https://example.com/api/todos/no-such-id", {
+      method: "PATCH",
+      body: "not json",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
 });
 
 describe("DELETE /api/todos/:id", () => {
