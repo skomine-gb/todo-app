@@ -24,6 +24,10 @@ export const todosRoute = new Hono<{ Bindings: Env }>()
   })
   .post("/todos", async (c) => {
     const body = await c.req.json().catch(() => null);
+    if (body === null || typeof body !== "object") {
+      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+    }
+
     const parsed = createTodoSchema.safeParse(body);
     if (!parsed.success) {
       return c.json({ error: "title を入力してください" }, 400);
