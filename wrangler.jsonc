@@ -13,4 +13,11 @@
     // SPA なのでアセットに一致しないパスは index.html にフォールバックする
     "not_found_handling": "single-page-application",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "todo-app-db",
+      "database_id": "51d69891-8de7-4ed2-8cef-4163b2f5591d",
+    },
+  ],
 }
