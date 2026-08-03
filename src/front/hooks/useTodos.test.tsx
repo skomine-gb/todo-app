@@ -38,14 +38,22 @@ const initialTodos: Todo[] = [
 type FailureCase = {
   name: string;
   apiMethod: keyof TodoApi;
-  act: (todos: ReturnType<typeof useTodos>) => void;
+  act: (hookResult: ReturnType<typeof useTodos>) => void;
 };
 
 const FAILURE_CASES: FailureCase[] = [
-  { name: "addTodo", apiMethod: "addTodo", act: (t) => t.addTodo("") },
-  { name: "toggleTodo", apiMethod: "updateTodo", act: (t) => t.toggleTodo("1", true) },
-  { name: "deleteTodo", apiMethod: "deleteTodo", act: (t) => t.deleteTodo("1") },
-  { name: "editTodo", apiMethod: "updateTodo", act: (t) => t.editTodo("1", "") },
+  { name: "addTodo", apiMethod: "addTodo", act: (hookResult) => hookResult.addTodo("") },
+  {
+    name: "toggleTodo",
+    apiMethod: "updateTodo",
+    act: (hookResult) => hookResult.toggleTodo("1", true),
+  },
+  { name: "deleteTodo", apiMethod: "deleteTodo", act: (hookResult) => hookResult.deleteTodo("1") },
+  {
+    name: "editTodo",
+    apiMethod: "updateTodo",
+    act: (hookResult) => hookResult.editTodo("1", ""),
+  },
 ];
 
 describe("useTodos", () => {
