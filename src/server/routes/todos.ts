@@ -1,13 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import type { Todo } from "../../shared/types.ts";
-
-// D1 の行（completed が 0/1 の INTEGER）を Todo 型（completed: boolean）へ変換する
-const toTodo = (row: { id: string; title: string; completed: number }): Todo => ({
-  id: row.id,
-  title: row.title,
-  completed: row.completed === 1,
-});
+import { createD1TodoRepository, type TodoRepository } from "../repository.ts";
 
 // JSON パース失敗・非オブジェクト（null・配列・文字列など）はどちらも null にまとめる
 const readJsonObjectBody = async (req: { json: () => Promise<unknown> }): Promise<unknown> => {
@@ -30,64 +23,57 @@ export const updateTodoSchema = z
     message: "title または completed のいずれかを指定してください",
   });
 
-export const todosRoute = new Hono<{ Bindings: Env }>()
-  .get("/todos", async (c) => {
-    const { results } = await c.env.DB.prepare(
-      "SELECT id, title, completed FROM todos ORDER BY rowid",
-    ).all<{ id: string; title: string; completed: number }>();
+// handler は TodoRepository（何ができるかの約束）にだけ依存し、本物のD1かfakeかを知らない
+export const createTodosRoute = (getRepo: (env: Env) => TodoRepository) =>
+  new Hono<{ Bindings: Env }>()
+    .get("/todos", async (c) => {
+      const todos = await getRepo(c.env).list();
+      return c.json(todos);
+    })
+    .post("/todos", async (c) => {
+      const body = await readJsonObjectBody(c.req);
+      if (body === null) {
+        return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+      }
 
-    return c.json(results.map(toTodo));
-  })
-  .post("/todos", async (c) => {
-    const body = await readJsonObjectBody(c.req);
-    if (body === null) {
-      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
-    }
+      const parsed = createTodoSchema.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: "title を入力してください" }, 400);
+      }
 
-    const parsed = createTodoSchema.safeParse(body);
-    if (!parsed.success) {
-      return c.json({ error: "title を入力してください" }, 400);
-    }
+      await getRepo(c.env).create({
+        id: crypto.randomUUID(),
+        title: parsed.data.title,
+        completed: false,
+      });
 
-    const id = crypto.randomUUID();
-    await c.env.DB.prepare("INSERT INTO todos (id, title, completed) VALUES (?, ?, 0)")
-      .bind(id, parsed.data.title)
-      .run();
+      return c.body(null, 201);
+    })
+    .patch("/todos/:id", async (c) => {
+      const body = await readJsonObjectBody(c.req);
+      if (body === null) {
+        return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+      }
 
-    return c.body(null, 201);
-  })
-  .patch("/todos/:id", async (c) => {
-    const body = await readJsonObjectBody(c.req);
-    if (body === null) {
-      return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
-    }
+      const parsed = updateTodoSchema.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: "title または completed を正しく指定してください" }, 400);
+      }
 
-    const parsed = updateTodoSchema.safeParse(body);
-    if (!parsed.success) {
-      return c.json({ error: "title または completed を正しく指定してください" }, 400);
-    }
+      const updated = await getRepo(c.env).update(c.req.param("id"), parsed.data);
+      if (!updated) {
+        return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+      }
 
-    const { title, completed } = parsed.data;
-    const result = await c.env.DB.prepare(
-      "UPDATE todos SET title = COALESCE(?, title), completed = COALESCE(?, completed) WHERE id = ?",
-    )
-      .bind(title ?? null, completed === undefined ? null : Number(completed), c.req.param("id"))
-      .run();
+      return c.body(null, 204);
+    })
+    .delete("/todos/:id", async (c) => {
+      const deleted = await getRepo(c.env).delete(c.req.param("id"));
+      if (!deleted) {
+        return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+      }
 
-    if (result.meta.changes === 0) {
-      return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
-    }
+      return c.body(null, 204);
+    });
 
-    return c.body(null, 204);
-  })
-  .delete("/todos/:id", async (c) => {
-    const result = await c.env.DB.prepare("DELETE FROM todos WHERE id = ?")
-      .bind(c.req.param("id"))
-      .run();
-
-    if (result.meta.changes === 0) {
-      return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
-    }
-
-    return c.body(null, 204);
-  });
+export const todosRoute = createTodosRoute((env) => createD1TodoRepository(env.DB));
