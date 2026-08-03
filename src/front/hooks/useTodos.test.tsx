@@ -111,6 +111,7 @@ describe("useTodos", () => {
       "/api/todos/1",
       expect.objectContaining({ method: "DELETE" }),
     );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("editTodo は title を PATCH し、再取得して反映する", async () => {
@@ -133,6 +134,7 @@ describe("useTodos", () => {
       "/api/todos/1",
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ title: "パンを買う" }) }),
     );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("addTodo が失敗しても例外にならず、一覧は変化せず console.error が呼ばれる", async () => {
