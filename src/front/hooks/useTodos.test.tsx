@@ -65,6 +65,8 @@ describe("useTodos", () => {
         body: JSON.stringify({ title: "レポートを書く" }),
       }),
     );
+    // 初期GET→POST→再取得GETの3回だけで、余分なfetchが発生していないことを確認する
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("toggleTodo は対象の completed を反転させて PATCH し、再取得して反映する", async () => {
@@ -87,6 +89,7 @@ describe("useTodos", () => {
       "/api/todos/1",
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ completed: true }) }),
     );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("deleteTodo は DELETE 後に再取得して反映する", async () => {

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import useSWR from "swr";
 import type { Todo } from "../../shared/types.ts";
 
@@ -11,10 +11,10 @@ async function fetchTodos(url: string): Promise<Todo[]> {
   return (await res.json()) as Todo[];
 }
 
-async function request(url: string, init?: RequestInit): Promise<void> {
+async function request(url: string, init: RequestInit & { method: string }): Promise<void> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${url} に失敗しました (status: ${res.status})`);
+    throw new Error(`${init.method} ${url} に失敗しました (status: ${res.status})`);
   }
 }
 
@@ -32,9 +32,19 @@ const deleteTodoRequest = (id: string) => request(`${TODOS_URL}/${id}`, { method
 
 // タスク一覧の状態と操作(追加・完了切替・削除・編集)をまとめたカスタムフック。
 // 一覧はSWRで取得・キャッシュし、更新系(POST/PATCH/DELETE)は成功後にmutateで一覧を取り直す。
+//
+// 既知の制限: API呼び出し失敗時は console.error のみでUIには何も表示しない(STEP12で対応予定)。
+// そのため TodoInput/TodoItem 側の入力欄クリア・編集モード終了は無条件に走ってしまい、
+// 失敗時もユーザーからは操作が成功したように見えてしまう。
 export function useTodos() {
   const { data, mutate } = useSWR<Todo[]>(TODOS_URL, fetchTodos);
   const todos = data ?? [];
+
+  // toggleTodo が todos の変化のたびに再生成されると、React.memo(TodoItem) の効果が
+  // 薄れてしまう(他のタスクの完了切替でも全件が再レンダリング対象になる)ため、
+  // ref経由で最新のtodosを参照し、useCallbackの依存はmutateだけに保つ。
+  const todosRef = useRef(todos);
+  todosRef.current = todos;
 
   const addTodo = useCallback(
     (title: string) => {
@@ -49,7 +59,7 @@ export function useTodos() {
 
   const toggleTodo = useCallback(
     (id: string) => {
-      const target = todos.find((todo) => todo.id === id);
+      const target = todosRef.current.find((todo) => todo.id === id);
       if (!target) return;
 
       void patchTodo(id, { completed: !target.completed })
@@ -58,7 +68,7 @@ export function useTodos() {
           console.error("完了状態の更新に失敗しました", error);
         });
     },
-    [todos, mutate],
+    [mutate],
   );
 
   const deleteTodo = useCallback(
