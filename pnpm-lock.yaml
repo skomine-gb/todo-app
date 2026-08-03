@@ -226,6 +226,9 @@ importers:
       react-dom:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
+      swr:
+        specifier: ^2.4.2
+        version: 2.4.2(react@19.2.8)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1740,6 +1743,11 @@ packages:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
 
+  swr@2.4.2:
+    resolution: {integrity: sha512-ej644Y2bvkIajfR32KGeSSdBXQW+ScjGjkybZgSE7kFpk9eGnV44XY9FJylXi+W75pavSX1PVNB57W5EbhGIYw==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
 
@@ -1798,6 +1806,11 @@ packages:
 
   unenv@2.0.0-rc.24:
     resolution: {integrity: sha512-i7qRCmY42zmCwnYlh9H2SvLEypEFGye5iRmEMKjcGi7zk9UquigRjFtTLz0TYqr0ZGLZhaMHl/foy1bZR+Cwlw==}
+
+  use-sync-external-store@1.6.0:
+    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   vite-plus@0.2.5:
     resolution: {integrity: sha512-QNJ0FnN8rfs5u8lZKZ1uR2Tegjg3VkT0AGTxSLGHg4fYmGxRNfAV0YX1parZrVa4VybSI56SWCoo7wQ6D7pMew==}
@@ -3010,6 +3023,12 @@ snapshots:
 
   supports-color@10.2.2: {}
 
+  swr@2.4.2(react@19.2.8):
+    dependencies:
+      dequal: 2.0.3
+      react: 19.2.8
+      use-sync-external-store: 1.6.0(react@19.2.8)
+
   symbol-tree@3.2.4: {}
 
   tinybench@2.9.0: {}
@@ -3053,6 +3072,10 @@ snapshots:
   unenv@2.0.0-rc.24:
     dependencies:
       pathe: 2.0.3
+
+  use-sync-external-store@1.6.0(react@19.2.8):
+    dependencies:
+      react: 19.2.8
 
   vite-plus@0.2.5(@types/node@26.1.2)(@voidzero-dev/vite-plus-core@0.2.5(@types/node@26.1.2)(esbuild@0.28.1)(typescript@6.0.3))(esbuild@0.28.1)(jsdom@29.1.1)(typescript@6.0.3):
     dependencies:
