@@ -71,6 +71,18 @@ describe("POST /api/todos", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: expect.any(String) });
   });
+
+  it("JSON でないボディを送るとサーバー側にエラーがログされる", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: "not json",
+    });
+
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
 
 describe("PATCH /api/todos/:id", () => {
