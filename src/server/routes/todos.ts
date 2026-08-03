@@ -4,7 +4,10 @@ import { createD1TodoRepository, type TodoRepository } from "../repository.ts";
 
 // JSON パース失敗・非オブジェクト（null・配列・文字列など）はどちらも null にまとめる
 const readJsonObjectBody = async (req: { json: () => Promise<unknown> }): Promise<unknown> => {
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((error: unknown) => {
+    console.error("リクエストボディのJSONパースに失敗しました", error);
+    return null;
+  });
   return body !== null && typeof body === "object" ? body : null;
 };
 
