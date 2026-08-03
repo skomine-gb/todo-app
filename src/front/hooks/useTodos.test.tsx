@@ -32,6 +32,22 @@ const initialTodos: Todo[] = [
   { id: "2", title: "部屋を掃除する", completed: true },
 ];
 
+// 「操作が失敗しても例外にならず、一覧は変化せず console.error が呼ばれる」という
+// 同じ形の検証を4操作ぶん並べるので、操作ごとの違い(モックするAPIメソッド・呼び出し方)
+// だけをテーブルにして it.each でまとめる。
+type FailureCase = {
+  name: string;
+  apiMethod: keyof TodoApi;
+  act: (todos: ReturnType<typeof useTodos>) => void;
+};
+
+const FAILURE_CASES: FailureCase[] = [
+  { name: "addTodo", apiMethod: "addTodo", act: (t) => t.addTodo("") },
+  { name: "toggleTodo", apiMethod: "updateTodo", act: (t) => t.toggleTodo("1", true) },
+  { name: "deleteTodo", apiMethod: "deleteTodo", act: (t) => t.deleteTodo("1") },
+  { name: "editTodo", apiMethod: "updateTodo", act: (t) => t.editTodo("1", "") },
+];
+
 describe("useTodos", () => {
   it("一覧を取得して todos として返す", async () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
@@ -81,17 +97,20 @@ describe("useTodos", () => {
     expect(result.current.todos[1].title).toBe("部屋を掃除する");
   });
 
-  it("addTodo が失敗しても例外にならず、一覧は変化せず console.error が呼ばれる", async () => {
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const api = createFakeApi(initialTodos);
-    vi.spyOn(api, "addTodo").mockRejectedValue(new Error("title を入力してください"));
+  it.each(FAILURE_CASES)(
+    "$name が失敗しても例外にならず、一覧は変化せず console.error が呼ばれる",
+    async ({ apiMethod, act }) => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const api = createFakeApi(initialTodos);
+      vi.spyOn(api, apiMethod).mockRejectedValue(new Error("失敗"));
 
-    const { result } = renderUseTodos(api);
-    await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+      const { result } = renderUseTodos(api);
+      await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
 
-    result.current.addTodo("");
+      act(result.current);
 
-    await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
-    expect(result.current.todos).toEqual(initialTodos);
-  });
+      await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
+      expect(result.current.todos).toEqual(initialTodos);
+    },
+  );
 });
