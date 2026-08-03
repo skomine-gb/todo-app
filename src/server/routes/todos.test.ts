@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { createTodoSchema, updateTodoSchema } from "./todos.ts";
+import type { TodoRepository } from "../repository.ts";
+import { createTodoSchema, createTodosRoute } from "./todos.ts";
 
 describe("createTodoSchema", () => {
   it("title の前後の空白を取り除く", () => {
@@ -51,55 +52,34 @@ describe("createTodoSchema", () => {
   });
 });
 
-describe("updateTodoSchema", () => {
-  it("title のみの指定を受け付ける（前後の空白を取り除く）", () => {
-    const result = updateTodoSchema.safeParse({ title: "  牛乳を買う  " });
+// テスト用の何もしないfake。個々のテストでは足りないメソッドだけ上書きする
+const createFakeRepo = (overrides: Partial<TodoRepository> = {}): TodoRepository => ({
+  list: async () => [],
+  create: async () => {},
+  update: async () => true,
+  delete: async () => true,
+  ...overrides,
+});
 
-    expect(result.success).toBe(true);
-    expect(result.success && result.data.title).toBe("牛乳を買う");
+describe("PATCH /todos/:id（handler、fakeリポジトリ）", () => {
+  it("対象が存在しない（update が false を返す）とき 404 を返す", async () => {
+    const app = createTodosRoute(() => createFakeRepo({ update: async () => false }));
+
+    const res = await app.request("/todos/no-such-id", {
+      method: "PATCH",
+      body: JSON.stringify({ completed: true }),
+    });
+
+    expect(res.status).toBe(404);
   });
+});
 
-  it("completed のみの指定を受け付ける", () => {
-    const result = updateTodoSchema.safeParse({ completed: true });
+describe("DELETE /todos/:id（handler、fakeリポジトリ）", () => {
+  it("対象が存在しない（delete が false を返す）とき 404 を返す", async () => {
+    const app = createTodosRoute(() => createFakeRepo({ delete: async () => false }));
 
-    expect(result.success).toBe(true);
-    expect(result.success && result.data.completed).toBe(true);
-  });
+    const res = await app.request("/todos/no-such-id", { method: "DELETE" });
 
-  it("title と completed の両方の指定を受け付ける", () => {
-    const result = updateTodoSchema.safeParse({ title: "牛乳を買う", completed: true });
-
-    expect(result.success).toBe(true);
-  });
-
-  it("空文字の title を拒否する", () => {
-    const result = updateTodoSchema.safeParse({ title: "" });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("title・completed のどちらも未指定の場合を拒否する", () => {
-    const result = updateTodoSchema.safeParse({});
-
-    expect(result.success).toBe(false);
-  });
-
-  it("completed が boolean でない場合を拒否する", () => {
-    const result = updateTodoSchema.safeParse({ completed: "true" });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("JSON でないボディ（null）を拒否する", () => {
-    const result = updateTodoSchema.safeParse(null);
-
-    expect(result.success).toBe(false);
-  });
-
-  it("id など余分なキーは無視される", () => {
-    const result = updateTodoSchema.safeParse({ title: "牛乳を買う", id: "client-supplied-id" });
-
-    expect(result.success).toBe(true);
-    expect(result.success && result.data).toEqual({ title: "牛乳を買う" });
+    expect(res.status).toBe(404);
   });
 });

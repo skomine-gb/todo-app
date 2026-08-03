@@ -120,6 +120,23 @@ describe("PATCH /api/todos/:id", () => {
     expect(list.find((todo) => todo.id === id)?.title).toBe("パンを買う");
   });
 
+  it("title の前後の空白を除いて保存される", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: "  パンを買う  " }),
+    });
+
+    expect(response.status).toBe(204);
+
+    const list = (await (await SELF.fetch("https://example.com/api/todos")).json()) as {
+      id: string;
+      title: string;
+    }[];
+    expect(list.find((todo) => todo.id === id)?.title).toBe("パンを買う");
+  });
+
   it("空文字の title は 400 を返す", async () => {
     const id = await createTodo("牛乳を買う");
 
