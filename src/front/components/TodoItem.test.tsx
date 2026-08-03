@@ -49,7 +49,7 @@ describe("TodoItem", () => {
     await user.click(screen.getByRole("checkbox", { name: todo.title }));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
-    expect(onToggle).toHaveBeenCalledWith("1");
+    expect(onToggle).toHaveBeenCalledWith("1", true);
   });
 
   it("削除ボタンを押すと onDelete が対象の id で呼ばれる", async () => {

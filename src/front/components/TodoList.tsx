@@ -5,7 +5,7 @@ import { TodoItem } from "./TodoItem.tsx";
 // タスクが0件のときは案内メッセージを表示する（要件 F-2）。
 type Props = {
   todos: Todo[];
-  onToggle: (id: string) => void;
+  onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
 };

@@ -8,7 +8,7 @@ import type { Todo } from "../../shared/types.ts";
 // 同じタイトルのタスクが複数あると区別できない（チェックボックスも同様）。
 type Props = {
   todo: Todo;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
 };
@@ -74,7 +74,7 @@ function TodoItemComponent({ todo, onToggle, onDelete, onEdit }: Props) {
       <input
         type="checkbox"
         checked={todo.completed}
-        onChange={() => onToggle(todo.id)}
+        onChange={() => onToggle(todo.id, !todo.completed)}
         aria-labelledby={`todo-title-${todo.id}`}
       />
       <span id={`todo-title-${todo.id}`} className="todo-title">
