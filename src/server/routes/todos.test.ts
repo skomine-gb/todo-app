@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { createTodoSchema } from "./todos.ts";
+import type { TodoRepository } from "../repository.ts";
+import { createTodoSchema, createTodosRoute } from "./todos.ts";
 
 describe("createTodoSchema", () => {
   it("title の前後の空白を取り除く", () => {
@@ -48,5 +49,37 @@ describe("createTodoSchema", () => {
 
     expect(result.success).toBe(true);
     expect(result.success && result.data).toEqual({ title: "牛乳を買う" });
+  });
+});
+
+// テスト用の何もしないfake。個々のテストでは足りないメソッドだけ上書きする
+const createFakeRepo = (overrides: Partial<TodoRepository> = {}): TodoRepository => ({
+  list: async () => [],
+  create: async () => {},
+  update: async () => true,
+  delete: async () => true,
+  ...overrides,
+});
+
+describe("PATCH /todos/:id（handler、fakeリポジトリ）", () => {
+  it("対象が存在しない（update が false を返す）とき 404 を返す", async () => {
+    const app = createTodosRoute(() => createFakeRepo({ update: async () => false }));
+
+    const res = await app.request("/todos/no-such-id", {
+      method: "PATCH",
+      body: JSON.stringify({ completed: true }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("DELETE /todos/:id（handler、fakeリポジトリ）", () => {
+  it("対象が存在しない（delete が false を返す）とき 404 を返す", async () => {
+    const app = createTodosRoute(() => createFakeRepo({ delete: async () => false }));
+
+    const res = await app.request("/todos/no-such-id", { method: "DELETE" });
+
+    expect(res.status).toBe(404);
   });
 });

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { env, SELF } from "cloudflare:test";
 
 beforeEach(async () => {
@@ -69,6 +69,171 @@ describe("POST /api/todos", () => {
     });
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it("JSON でないボディを送るとサーバー側にエラーがログされる", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: "not json",
+    });
+
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+});
+
+describe("PATCH /api/todos/:id", () => {
+  const createTodo = async (title: string) => {
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+
+    const response = await SELF.fetch("https://example.com/api/todos");
+    const todos = (await response.json()) as { id: string }[];
+    return todos[0].id;
+  };
+
+  it("completed の反転が 204 で成功し、GET に反映される", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ completed: true }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe("");
+
+    const list = (await (await SELF.fetch("https://example.com/api/todos")).json()) as {
+      id: string;
+      completed: boolean;
+    }[];
+    expect(list.find((todo) => todo.id === id)?.completed).toBe(true);
+  });
+
+  it("title の編集が 204 で成功し、GET に反映される", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: "パンを買う" }),
+    });
+
+    expect(response.status).toBe(204);
+
+    const list = (await (await SELF.fetch("https://example.com/api/todos")).json()) as {
+      id: string;
+      title: string;
+    }[];
+    expect(list.find((todo) => todo.id === id)?.title).toBe("パンを買う");
+  });
+
+  it("title の前後の空白を除いて保存される", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: "  パンを買う  " }),
+    });
+
+    expect(response.status).toBe(204);
+
+    const list = (await (await SELF.fetch("https://example.com/api/todos")).json()) as {
+      id: string;
+      title: string;
+    }[];
+    expect(list.find((todo) => todo.id === id)?.title).toBe("パンを買う");
+  });
+
+  it("空文字の title は 400 を返す", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: "" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it("title・completed のどちらも未指定の場合は 400 を返す", async () => {
+    const id = await createTodo("牛乳を買う");
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it("存在しない id は 404 を返す", async () => {
+    const response = await SELF.fetch("https://example.com/api/todos/no-such-id", {
+      method: "PATCH",
+      body: JSON.stringify({ completed: true }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it("JSON でないボディは 400 を返す（存在しない id でも先にボディを検査する）", async () => {
+    const response = await SELF.fetch("https://example.com/api/todos/no-such-id", {
+      method: "PATCH",
+      body: "not json",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it("JSON でないボディを送るとサーバー側にエラーがログされる", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await SELF.fetch("https://example.com/api/todos/no-such-id", {
+      method: "PATCH",
+      body: "not json",
+    });
+
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+});
+
+describe("DELETE /api/todos/:id", () => {
+  it("204 を返し、一覧から消える", async () => {
+    await SELF.fetch("https://example.com/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ title: "牛乳を買う" }),
+    });
+    const created = (await (await SELF.fetch("https://example.com/api/todos")).json()) as {
+      id: string;
+    }[];
+    const id = created[0].id;
+
+    const response = await SELF.fetch(`https://example.com/api/todos/${id}`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe("");
+
+    const list = (await (await SELF.fetch("https://example.com/api/todos")).json()) as unknown[];
+    expect(list).toEqual([]);
+  });
+
+  it("存在しない id は 404 を返す", async () => {
+    const response = await SELF.fetch("https://example.com/api/todos/no-such-id", {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: expect.any(String) });
   });
 });
