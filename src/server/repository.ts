@@ -10,7 +10,8 @@ const toTodo = (row: { id: string; title: string; completed: number }): Todo => 
 // handler は D1 を直接知らず、この interface が示す操作だけに依存する
 export interface TodoRepository {
   list(): Promise<Todo[]>;
-  create(todo: Todo): Promise<void>;
+  // 新規作成時は必ず completed: false になるという制約を型で表す（呼び出し側は completed を渡せない）
+  create(todo: Omit<Todo, "completed">): Promise<void>;
   update(id: string, patch: { title?: string; completed?: boolean }): Promise<boolean>;
   delete(id: string): Promise<boolean>;
 }
@@ -26,8 +27,8 @@ export const createD1TodoRepository = (db: D1Database): TodoRepository => ({
 
   async create(todo) {
     await db
-      .prepare("INSERT INTO todos (id, title, completed) VALUES (?, ?, ?)")
-      .bind(todo.id, todo.title, todo.completed ? 1 : 0)
+      .prepare("INSERT INTO todos (id, title, completed) VALUES (?, ?, 0)")
+      .bind(todo.id, todo.title)
       .run();
   },
 

@@ -44,7 +44,6 @@ export const createTodosRoute = (getRepo: (env: Env) => TodoRepository) =>
       await getRepo(c.env).create({
         id: crypto.randomUUID(),
         title: parsed.data.title,
-        completed: false,
       });
 
       return c.body(null, 201);
