@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { todoApi } from "./todoApi.ts";
+import { describe, expect, it, vi } from "vite-plus/test";
+import { createTodoApi } from "./todoApi.ts";
 
-// todoApi.ts はHTTP通信そのものを担う層なので、ここでは実際に fetch をモックして
+// todoApi.ts はHTTP通信そのものを担う層なので、ここでは fetch の実装を fake に差し替えて
 // URL・メソッド・ボディの組み立てと、失敗時に汎用エラーを投げることを検証する。
+// createTodoApi に fake の fetch を注入するだけで済み、グローバルな fetch は汚さない。
 // サーバー側のエラーメッセージの扱い(ログに残す等)は src/server/routes/todos.ts の責務で、
 // フロント側はそれを一切読み取らない(useTodos.test.tsx / App.test.tsx は fake の TodoApi を
 // 注入するため fetch を知らない)。
@@ -18,34 +19,31 @@ function emptyResponse(status: number): Response {
   return new Response(null, { status });
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe("todoApi.fetchTodos", () => {
-  it("成功時は一覧を返す", async () => {
+  it("正しいURLでGETし、レスポンスのJSONをそのまま返す", async () => {
     const todos = [{ id: "1", title: "牛乳を買う", completed: false }];
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(todos)));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(todos));
+    const api = createTodoApi(fetchMock);
 
-    await expect(todoApi.fetchTodos()).resolves.toEqual(todos);
+    await expect(api.fetchTodos()).resolves.toEqual(todos);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/todos", undefined);
   });
 
   it("失敗時は汎用エラーを投げる", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ error: "DBに接続できません" }, 500)),
-    );
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "DBに接続できません" }, 500));
+    const api = createTodoApi(fetchMock);
 
-    await expect(todoApi.fetchTodos()).rejects.toThrow("サーバーとの通信に失敗しました");
+    await expect(api.fetchTodos()).rejects.toThrow("サーバーとの通信に失敗しました");
   });
 });
 
 describe("todoApi.addTodo", () => {
   it("正しいURL・メソッド・ボディでPOSTする", async () => {
     const fetchMock = vi.fn().mockResolvedValue(emptyResponse(201));
-    vi.stubGlobal("fetch", fetchMock);
+    const api = createTodoApi(fetchMock);
 
-    await todoApi.addTodo("レポートを書く");
+    await api.addTodo("レポートを書く");
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/todos",
@@ -58,21 +56,21 @@ describe("todoApi.addTodo", () => {
   });
 
   it("失敗時は汎用エラーを投げる", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ error: "title を入力してください" }, 400)),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ error: "title を入力してください" }, 400));
+    const api = createTodoApi(fetchMock);
 
-    await expect(todoApi.addTodo("")).rejects.toThrow("サーバーとの通信に失敗しました");
+    await expect(api.addTodo("")).rejects.toThrow("サーバーとの通信に失敗しました");
   });
 });
 
 describe("todoApi.updateTodo", () => {
   it("正しいURL・メソッド・ボディでPATCHする", async () => {
     const fetchMock = vi.fn().mockResolvedValue(emptyResponse(204));
-    vi.stubGlobal("fetch", fetchMock);
+    const api = createTodoApi(fetchMock);
 
-    await todoApi.updateTodo("1", { completed: true });
+    await api.updateTodo("1", { completed: true });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/todos/1",
@@ -85,32 +83,32 @@ describe("todoApi.updateTodo", () => {
   });
 
   it("失敗時は汎用エラーを投げる", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404)));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404));
+    const api = createTodoApi(fetchMock);
 
-    await expect(todoApi.updateTodo("no-such-id", { completed: true })).rejects.toThrow(
+    await expect(api.updateTodo("no-such-id", { completed: true })).rejects.toThrow(
       "サーバーとの通信に失敗しました",
     );
   });
 });
 
 describe("todoApi.deleteTodo", () => {
-  it("正しいURL・メソッドでDELETEする", async () => {
+  it("正しいURL・メソッドでDELETEし、JSONヘッダーやボディを付けない", async () => {
     const fetchMock = vi.fn().mockResolvedValue(emptyResponse(204));
-    vi.stubGlobal("fetch", fetchMock);
+    const api = createTodoApi(fetchMock);
 
-    await todoApi.deleteTodo("1");
+    await api.deleteTodo("1");
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/todos/1",
-      expect.objectContaining({ method: "DELETE" }),
+      expect.objectContaining({ method: "DELETE", headers: undefined, body: undefined }),
     );
   });
 
   it("失敗時は汎用エラーを投げる", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404)));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404));
+    const api = createTodoApi(fetchMock);
 
-    await expect(todoApi.deleteTodo("no-such-id")).rejects.toThrow(
-      "サーバーとの通信に失敗しました",
-    );
+    await expect(api.deleteTodo("no-such-id")).rejects.toThrow("サーバーとの通信に失敗しました");
   });
 });
