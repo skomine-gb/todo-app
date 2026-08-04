@@ -19,49 +19,49 @@ export function useTodos() {
   const todos = data ?? [];
 
   const addTodo = useCallback(
-    (title: string) => {
-      void api
-        .addTodo(title)
-        .then(() => mutate())
-        .catch((error: unknown) => {
-          console.error("タスクの追加に失敗しました", error);
-        });
+    async (title: string) => {
+      try {
+        await api.addTodo(title);
+        await mutate();
+      } catch (error) {
+        console.error("タスクの追加に失敗しました", error);
+      }
     },
     [api, mutate],
   );
 
   const toggleTodo = useCallback(
-    (id: string, completed: boolean) => {
-      void api
-        .updateTodo(id, { completed })
-        .then(() => mutate())
-        .catch((error: unknown) => {
-          console.error("完了状態の更新に失敗しました", error);
-        });
+    async (id: string, completed: boolean) => {
+      try {
+        await api.updateTodo(id, { completed });
+        await mutate();
+      } catch (error) {
+        console.error("完了状態の更新に失敗しました", error);
+      }
     },
     [api, mutate],
   );
 
   const deleteTodo = useCallback(
-    (id: string) => {
-      void api
-        .deleteTodo(id)
-        .then(() => mutate())
-        .catch((error: unknown) => {
-          console.error("タスクの削除に失敗しました", error);
-        });
+    async (id: string) => {
+      try {
+        await api.deleteTodo(id);
+        await mutate();
+      } catch (error) {
+        console.error("タスクの削除に失敗しました", error);
+      }
     },
     [api, mutate],
   );
 
   const editTodo = useCallback(
-    (id: string, title: string) => {
-      void api
-        .updateTodo(id, { title })
-        .then(() => mutate())
-        .catch((error: unknown) => {
-          console.error("タスクの編集に失敗しました", error);
-        });
+    async (id: string, title: string) => {
+      try {
+        await api.updateTodo(id, { title });
+        await mutate();
+      } catch (error) {
+        console.error("タスクの編集に失敗しました", error);
+      }
     },
     [api, mutate],
   );

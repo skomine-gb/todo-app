@@ -67,7 +67,7 @@ describe("useTodos", () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
 
-    result.current.addTodo("レポートを書く");
+    void result.current.addTodo("レポートを書く");
 
     await waitFor(() => expect(result.current.todos).toHaveLength(3));
     const added = result.current.todos[2];
@@ -79,7 +79,7 @@ describe("useTodos", () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
 
-    result.current.toggleTodo("1", true);
+    void result.current.toggleTodo("1", true);
 
     await waitFor(() => expect(result.current.todos[0].completed).toBe(true));
     expect(result.current.todos[1].completed).toBe(true);
@@ -89,7 +89,7 @@ describe("useTodos", () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
 
-    result.current.deleteTodo("1");
+    void result.current.deleteTodo("1");
 
     await waitFor(() => expect(result.current.todos).toHaveLength(1));
     expect(result.current.todos[0].id).toBe("2");
@@ -99,7 +99,7 @@ describe("useTodos", () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
 
-    result.current.editTodo("1", "パンを買う");
+    void result.current.editTodo("1", "パンを買う");
 
     await waitFor(() => expect(result.current.todos[0].title).toBe("パンを買う"));
     expect(result.current.todos[1].title).toBe("部屋を掃除する");
