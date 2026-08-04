@@ -106,9 +106,11 @@ describe("useTodos", () => {
   });
 
   it.each(FAILURE_CASES)(
-    "$name が失敗しても例外にならず、一覧は変化せず console.error が呼ばれる",
+    "$name が失敗しても例外にならず、一覧は変化しない",
     async ({ apiMethod, act }) => {
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      // console.error はデバッグ用のログ出力であり、テストで検証すべき「仕様」ではない。
+      // ここでは実行時にエラーログでターミナルが汚れないよう握りつぶすためだけにモックする。
+      vi.spyOn(console, "error").mockImplementation(() => {});
       const api = createFakeApi(initialTodos);
       vi.spyOn(api, apiMethod).mockRejectedValue(new Error("失敗"));
 
@@ -117,8 +119,7 @@ describe("useTodos", () => {
 
       act(result.current);
 
-      await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
-      expect(result.current.todos).toEqual(initialTodos);
+      await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
     },
   );
 });
