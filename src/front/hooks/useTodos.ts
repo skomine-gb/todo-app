@@ -8,7 +8,7 @@ const TODOS_KEY = "/api/todos";
 // タスク一覧の状態と操作(追加・完了切替・削除・編集)をまとめたカスタムフック。
 // 一覧はSWRで取得・キャッシュし、更新系(追加/更新/削除)は成功後にmutateで一覧を取り直す。
 // 実際の通信は TodoApiContext から注入された TodoApi に任せ、このフックはHTTPの詳細を知らない
-// (テストではfetchをモックする代わりにfakeのTodoApiを注入すればよい。src/front/api/todoApi.fake.ts参照)。
+// (テストではfetchをモックする代わりにfakeのTodoApiを注入すればよい。src/front/tests/helper/todoApi.fake.ts参照)。
 //
 // 既知の制限: API呼び出し失敗時は console.error のみでUIには何も表示しない(STEP12で対応予定)。
 // そのため TodoInput/TodoItem 側の入力欄クリア・編集モード終了は無条件に走ってしまい、
