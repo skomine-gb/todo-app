@@ -22,22 +22,33 @@ async function throwOnFailure(res: Response): Promise<void> {
   throw new Error("サーバーとの通信に失敗しました");
 }
 
+// fetch を呼んで throwOnFailure まで済ませる下請け関数。
+// fetchTodos(戻り値のJSONが必要)と request(戻り値を捨てる)の両方から使う。
+async function fetchWithCheck(url: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(url, init);
+  await throwOnFailure(res);
+  return res;
+}
+
 // body があるときだけ JSON 用ヘッダーと文字列化を自動で行う。
 // 呼び出し側は「メソッド・URL・送りたいデータ」だけを渡せばよく、
 // JSON_HEADERS を書き忘れる心配がない(レビュー指摘: APIが増えても付け忘れが起きない設計にする)。
-async function request(url: string, method: string, body?: unknown): Promise<void> {
-  const res = await fetch(url, {
+// GET(一覧取得)は fetchTodos が別途 fetchWithCheck を直接使うため、method には含めない。
+async function request(
+  url: string,
+  method: "POST" | "PATCH" | "DELETE",
+  body?: unknown,
+): Promise<void> {
+  await fetchWithCheck(url, {
     method,
     headers: body === undefined ? undefined : JSON_HEADERS,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  await throwOnFailure(res);
 }
 
 export const todoApi: TodoApi = {
   async fetchTodos() {
-    const res = await fetch(TODOS_URL);
-    await throwOnFailure(res);
+    const res = await fetchWithCheck(TODOS_URL);
     return (await res.json()) as Todo[];
   },
 
