@@ -22,8 +22,15 @@ async function throwOnFailure(res: Response): Promise<void> {
   throw new Error("サーバーとの通信に失敗しました");
 }
 
-async function request(url: string, init: RequestInit & { method: string }): Promise<void> {
-  const res = await fetch(url, init);
+// body があるときだけ JSON 用ヘッダーと文字列化を自動で行う。
+// 呼び出し側は「メソッド・URL・送りたいデータ」だけを渡せばよく、
+// JSON_HEADERS を書き忘れる心配がない(レビュー指摘: APIが増えても付け忘れが起きない設計にする)。
+async function request(url: string, method: string, body?: unknown): Promise<void> {
+  const res = await fetch(url, {
+    method,
+    headers: body === undefined ? undefined : JSON_HEADERS,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
   await throwOnFailure(res);
 }
 
@@ -34,15 +41,9 @@ export const todoApi: TodoApi = {
     return (await res.json()) as Todo[];
   },
 
-  addTodo: (title) =>
-    request(TODOS_URL, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ title }) }),
+  addTodo: (title) => request(TODOS_URL, "POST", { title }),
 
-  updateTodo: (id, patch) =>
-    request(`${TODOS_URL}/${id}`, {
-      method: "PATCH",
-      headers: JSON_HEADERS,
-      body: JSON.stringify(patch),
-    }),
+  updateTodo: (id, patch) => request(`${TODOS_URL}/${id}`, "PATCH", patch),
 
-  deleteTodo: (id) => request(`${TODOS_URL}/${id}`, { method: "DELETE" }),
+  deleteTodo: (id) => request(`${TODOS_URL}/${id}`, "DELETE"),
 };
