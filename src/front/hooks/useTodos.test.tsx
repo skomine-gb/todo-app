@@ -4,7 +4,7 @@ import { SWRConfig } from "swr";
 import type { ReactNode } from "react";
 import type { Todo } from "../../shared/types.ts";
 import { TodoApiContext } from "../api/TodoApiContext.ts";
-import { createFakeApi } from "../api/todoApi.fake.ts";
+import { createFakeApi } from "../tests/helper/todoApi.fake.ts";
 import type { TodoApi } from "../api/todoApi.ts";
 import { useTodos } from "./useTodos.ts";
 

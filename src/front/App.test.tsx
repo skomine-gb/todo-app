@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import type { Todo } from "../shared/types.ts";
 import { TodoApiContext } from "./api/TodoApiContext.ts";
-import { createFakeApi } from "./api/todoApi.fake.ts";
+import { createFakeApi } from "./tests/helper/todoApi.fake.ts";
 import { App } from "./App.tsx";
 
 function renderApp(initial: Todo[]) {
