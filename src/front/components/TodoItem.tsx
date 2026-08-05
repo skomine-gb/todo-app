@@ -41,6 +41,9 @@ function TodoItemComponent({ todo, onToggle, onDelete, onEdit }: Props) {
     }
 
     onEdit(todo.id, title);
+    // onEditの成否を待たずに無条件で表示モードに戻す。失敗時は useTodos の actionError が
+    // 画面上部に汎用メッセージを出す(STEP12のスコープ)ので、この行だけを編集モードに
+    // 留めたり、失敗をこの行に紐づけて示したりはしない。
     setIsEditing(false);
     setError(null);
   };

@@ -21,6 +21,8 @@ export function TodoInput({ onAdd }: Props) {
 
     setError(null);
     onAdd(title);
+    // onAddの成否を待たずに無条件でクリアする。失敗時は useTodos の actionError が
+    // 画面上部に汎用メッセージを出す(STEP12のスコープ)ので、入力内容の保持はしない。
     setValue("");
   };
 
