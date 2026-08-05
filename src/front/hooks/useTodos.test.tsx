@@ -95,6 +95,21 @@ describe("useTodos", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it("addTodo自体は成功し、その後の一覧再取得だけが失敗した場合はactionErrorにならない", async () => {
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "fetchTodos")
+      .mockResolvedValueOnce(initialTodos) // 初回の一覧取得
+      .mockRejectedValueOnce(new Error("再取得に失敗")); // addTodo成功後、mutateによる再取得
+
+    const { result } = renderUseTodos(api);
+    await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+
+    void result.current.addTodo("レポートを書く");
+
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+    expect(result.current.actionError).toBeNull();
+  });
+
   it("addTodo で末尾に未完了のタスクが追加される", async () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
