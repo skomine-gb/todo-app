@@ -20,7 +20,9 @@ const TODOS_KEY = "/api/todos";
 // SWR自身の error に表れるので、actionError は立てずログだけ残す。
 export function useTodos() {
   const api = useContext(TodoApiContext);
-  const { data, error, isLoading, mutate } = useSWR<Todo[]>(TODOS_KEY, () => api.fetchTodos());
+  const { data, error, isLoading, mutate } = useSWR<Todo[], Error>(TODOS_KEY, () =>
+    api.fetchTodos(),
+  );
   const todos = data ?? [];
   const [actionError, setActionError] = useState<string | null>(null);
 
