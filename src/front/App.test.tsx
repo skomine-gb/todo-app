@@ -1,18 +1,20 @@
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import type { Todo } from "../shared/types.ts";
 import { TodoApiContext } from "./api/TodoApiContext.ts";
 import { createFakeApi } from "./tests/helper/todoApi.fake.ts";
+import type { TodoApi } from "./api/todoApi.ts";
 import { App } from "./App.tsx";
 
-function renderApp(initial: Todo[]) {
-  // テストごとに新しいMapとfakeのTodoApiを渡し、App.tsxを変更せずに
-  // SWRキャッシュの隔離とHTTP通信の差し替えを行う。
+function renderApp(api: TodoApi) {
+  // テストごとに新しいMapとTodoApiを渡し、App.tsxを変更せずに
+  // SWRキャッシュの隔離とHTTP通信の差し替えを行う。failしたい操作だけ
+  // vi.spyOn で上書きしたfakeを渡せば、失敗系のテストもこのヘルパーで書ける。
   return render(
     <SWRConfig value={{ provider: () => new Map() }}>
-      <TodoApiContext.Provider value={createFakeApi(initial)}>
+      <TodoApiContext.Provider value={api}>
         <App />
       </TodoApiContext.Provider>
     </SWRConfig>,
@@ -32,7 +34,7 @@ afterEach(() => {
 describe("App", () => {
   it("入力して追加すると一覧の件数が1つ増え、タイトルが表示される", async () => {
     const user = userEvent.setup();
-    renderApp(initialTodos);
+    renderApp(createFakeApi(initialTodos));
 
     const before = (await screen.findAllByRole("listitem")).length;
 
@@ -45,7 +47,7 @@ describe("App", () => {
 
   it("空文字・空白のみで追加しても件数は変わらない", async () => {
     const user = userEvent.setup();
-    renderApp(initialTodos);
+    renderApp(createFakeApi(initialTodos));
 
     const before = (await screen.findAllByRole("listitem")).length;
 
@@ -57,7 +59,7 @@ describe("App", () => {
 
   it("チェックボックスを操作すると完了／未完了が切り替わる", async () => {
     const user = userEvent.setup();
-    renderApp(initialTodos);
+    renderApp(createFakeApi(initialTodos));
 
     const checkbox = await screen.findByRole("checkbox", { name: "牛乳を買う" });
     const item = checkbox.closest("li");
@@ -68,5 +70,32 @@ describe("App", () => {
 
     await user.click(checkbox);
     await waitFor(() => expect(item?.classList.contains("completed")).toBe(false));
+  });
+
+  it("読み込み中は「読み込み中…」が表示される", () => {
+    renderApp(createFakeApi(initialTodos));
+
+    expect(screen.getByText("読み込み中…")).toBeTruthy();
+  });
+
+  it("一覧の取得に失敗すると「読み込みに失敗しました」が表示される", async () => {
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "fetchTodos").mockRejectedValue(new Error("失敗"));
+    renderApp(api);
+
+    expect(await screen.findByText("読み込みに失敗しました")).toBeTruthy();
+  });
+
+  it("追加に失敗すると対応するエラーメッセージが表示される", async () => {
+    const user = userEvent.setup();
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "addTodo").mockRejectedValue(new Error("失敗"));
+    renderApp(api);
+
+    await screen.findAllByRole("listitem");
+    await user.type(screen.getByLabelText("タスクを入力"), "散歩する");
+    await user.click(screen.getByRole("button", { name: "追加" }));
+
+    expect(await screen.findByText("タスクの追加に失敗しました")).toBeTruthy();
   });
 });

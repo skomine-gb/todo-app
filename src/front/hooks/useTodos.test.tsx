@@ -39,20 +39,33 @@ type FailureCase = {
   name: string;
   apiMethod: keyof TodoApi;
   act: (hookResult: ReturnType<typeof useTodos>) => void;
+  expectedMessage: string;
 };
 
 const FAILURE_CASES: FailureCase[] = [
-  { name: "addTodo", apiMethod: "addTodo", act: (hookResult) => hookResult.addTodo("") },
+  {
+    name: "addTodo",
+    apiMethod: "addTodo",
+    act: (hookResult) => hookResult.addTodo(""),
+    expectedMessage: "タスクの追加に失敗しました",
+  },
   {
     name: "toggleTodo",
     apiMethod: "updateTodo",
     act: (hookResult) => hookResult.toggleTodo("1", true),
+    expectedMessage: "完了状態の更新に失敗しました",
   },
-  { name: "deleteTodo", apiMethod: "deleteTodo", act: (hookResult) => hookResult.deleteTodo("1") },
+  {
+    name: "deleteTodo",
+    apiMethod: "deleteTodo",
+    act: (hookResult) => hookResult.deleteTodo("1"),
+    expectedMessage: "タスクの削除に失敗しました",
+  },
   {
     name: "editTodo",
     apiMethod: "updateTodo",
     act: (hookResult) => hookResult.editTodo("1", ""),
+    expectedMessage: "タスクの編集に失敗しました",
   },
 ];
 
@@ -61,6 +74,25 @@ describe("useTodos", () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
 
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+  });
+
+  it("取得完了までは isLoading が true、完了後は false になる", async () => {
+    const { result } = renderUseTodos(createFakeApi(initialTodos));
+
+    expect(result.current.isLoading).toBe(true);
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.todos).toEqual(initialTodos);
+  });
+
+  it("一覧の取得に失敗すると error が設定される", async () => {
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "fetchTodos").mockRejectedValue(new Error("失敗"));
+
+    const { result } = renderUseTodos(api);
+
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+    expect(result.current.isLoading).toBe(false);
   });
 
   it("addTodo で末尾に未完了のタスクが追加される", async () => {
@@ -106,8 +138,8 @@ describe("useTodos", () => {
   });
 
   it.each(FAILURE_CASES)(
-    "$name が失敗しても例外にならず、一覧は変化しない",
-    async ({ apiMethod, act }) => {
+    "$name が失敗しても例外にならず、一覧は変化しないが actionError が設定される",
+    async ({ apiMethod, act, expectedMessage }) => {
       const api = createFakeApi(initialTodos);
       vi.spyOn(api, apiMethod).mockRejectedValue(new Error("失敗"));
 
@@ -117,6 +149,21 @@ describe("useTodos", () => {
       act(result.current);
 
       await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+      await waitFor(() => expect(result.current.actionError).toBe(expectedMessage));
     },
   );
+
+  it("失敗後に同じ操作が成功すると actionError がクリアされる", async () => {
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "addTodo").mockRejectedValueOnce(new Error("失敗"));
+
+    const { result } = renderUseTodos(api);
+    await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+
+    void result.current.addTodo("レポートを書く");
+    await waitFor(() => expect(result.current.actionError).toBe("タスクの追加に失敗しました"));
+
+    void result.current.addTodo("レポートを書く");
+    await waitFor(() => expect(result.current.actionError).toBeNull());
+  });
 });

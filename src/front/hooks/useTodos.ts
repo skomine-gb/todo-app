@@ -1,4 +1,4 @@
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import useSWR from "swr";
 import { TodoApiContext } from "../api/TodoApiContext.ts";
 import type { Todo } from "../../shared/types.ts";
@@ -10,21 +10,23 @@ const TODOS_KEY = "/api/todos";
 // 実際の通信は TodoApiContext から注入された TodoApi に任せ、このフックはHTTPの詳細を知らない
 // (テストではfetchをモックする代わりにfakeのTodoApiを注入すればよい。src/front/tests/helper/todoApi.fake.ts参照)。
 //
-// 既知の制限: API呼び出し失敗時は console.error のみでUIには何も表示しない(STEP12で対応予定)。
-// そのため TodoInput/TodoItem 側の入力欄クリア・編集モード終了は無条件に走ってしまい、
-// 失敗時もユーザーからは操作が成功したように見えてしまう。
+// 一覧取得の読み込み中・失敗はSWRの isLoading/error をそのまま公開する。
+// 操作(追加/更新/削除/編集)の失敗は actionError にメッセージを入れて呼び出し元(App)に伝える。
 export function useTodos() {
   const api = useContext(TodoApiContext);
-  const { data, mutate } = useSWR<Todo[]>(TODOS_KEY, () => api.fetchTodos());
+  const { data, error, isLoading, mutate } = useSWR<Todo[]>(TODOS_KEY, () => api.fetchTodos());
   const todos = data ?? [];
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const addTodo = useCallback(
     async (title: string) => {
+      setActionError(null);
       try {
         await api.addTodo(title);
         await mutate();
-      } catch (error) {
-        console.error("タスクの追加に失敗しました", error);
+      } catch (err) {
+        console.error("タスクの追加に失敗しました", err);
+        setActionError("タスクの追加に失敗しました");
       }
     },
     [api, mutate],
@@ -32,11 +34,13 @@ export function useTodos() {
 
   const toggleTodo = useCallback(
     async (id: string, completed: boolean) => {
+      setActionError(null);
       try {
         await api.updateTodo(id, { completed });
         await mutate();
-      } catch (error) {
-        console.error("完了状態の更新に失敗しました", error);
+      } catch (err) {
+        console.error("完了状態の更新に失敗しました", err);
+        setActionError("完了状態の更新に失敗しました");
       }
     },
     [api, mutate],
@@ -44,11 +48,13 @@ export function useTodos() {
 
   const deleteTodo = useCallback(
     async (id: string) => {
+      setActionError(null);
       try {
         await api.deleteTodo(id);
         await mutate();
-      } catch (error) {
-        console.error("タスクの削除に失敗しました", error);
+      } catch (err) {
+        console.error("タスクの削除に失敗しました", err);
+        setActionError("タスクの削除に失敗しました");
       }
     },
     [api, mutate],
@@ -56,15 +62,17 @@ export function useTodos() {
 
   const editTodo = useCallback(
     async (id: string, title: string) => {
+      setActionError(null);
       try {
         await api.updateTodo(id, { title });
         await mutate();
-      } catch (error) {
-        console.error("タスクの編集に失敗しました", error);
+      } catch (err) {
+        console.error("タスクの編集に失敗しました", err);
+        setActionError("タスクの編集に失敗しました");
       }
     },
     [api, mutate],
   );
 
-  return { todos, addTodo, toggleTodo, deleteTodo, editTodo };
+  return { todos, addTodo, toggleTodo, deleteTodo, editTodo, isLoading, error, actionError };
 }
