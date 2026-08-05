@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { createTodoApi } from "./todoApi.ts";
 
 // todoApi.ts はHTTP通信そのものを担う層なので、ここでは fetch の実装を fake に差し替えて
-// URL・メソッド・ボディの組み立てと、失敗時に汎用エラーを投げることを検証する。
+// URL・メソッド・ボディの組み立てと、失敗時にエラーの種類(ステータスコード)に応じた
+// メッセージのエラーを投げることを検証する。
 // createTodoApi に fake の fetch を注入するだけで済み、グローバルな fetch は汚さない。
 // サーバー側のエラーメッセージの扱い(ログに残す等)は src/server/routes/todos.ts の責務で、
 // フロント側はそれを一切読み取らない(useTodos.test.tsx / App.test.tsx は fake の TodoApi を
@@ -30,11 +31,11 @@ describe("todoApi.fetchTodos", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/todos", undefined);
   });
 
-  it("失敗時は汎用エラーを投げる", async () => {
+  it("500ならサーバー内エラーとわかるメッセージを投げる", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "DBに接続できません" }, 500));
     const api = createTodoApi(fetchMock);
 
-    await expect(api.fetchTodos()).rejects.toThrow("サーバーとの通信に失敗しました");
+    await expect(api.fetchTodos()).rejects.toThrow("サーバーでエラーが発生しました");
   });
 });
 
@@ -55,13 +56,13 @@ describe("todoApi.addTodo", () => {
     );
   });
 
-  it("失敗時は汎用エラーを投げる", async () => {
+  it("400なら入力内容に誤りがあるとわかるメッセージを投げる", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse({ error: "title を入力してください" }, 400));
     const api = createTodoApi(fetchMock);
 
-    await expect(api.addTodo("")).rejects.toThrow("サーバーとの通信に失敗しました");
+    await expect(api.addTodo("")).rejects.toThrow("入力内容に誤りがあります");
   });
 });
 
@@ -82,12 +83,12 @@ describe("todoApi.updateTodo", () => {
     );
   });
 
-  it("失敗時は汎用エラーを投げる", async () => {
+  it("404なら対象が存在しないとわかるメッセージを投げる", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404));
     const api = createTodoApi(fetchMock);
 
     await expect(api.updateTodo("no-such-id", { completed: true })).rejects.toThrow(
-      "サーバーとの通信に失敗しました",
+      "対象のタスクが見つかりません",
     );
   });
 });
@@ -105,10 +106,10 @@ describe("todoApi.deleteTodo", () => {
     );
   });
 
-  it("失敗時は汎用エラーを投げる", async () => {
+  it("404なら対象が存在しないとわかるメッセージを投げる", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: "存在しません" }, 404));
     const api = createTodoApi(fetchMock);
 
-    await expect(api.deleteTodo("no-such-id")).rejects.toThrow("サーバーとの通信に失敗しました");
+    await expect(api.deleteTodo("no-such-id")).rejects.toThrow("対象のタスクが見つかりません");
   });
 });

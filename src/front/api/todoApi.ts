@@ -16,13 +16,20 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 // 万一 body を渡し間違えても余計なヘッダーを付けないよう method 側で判定する。
 const METHODS_WITH_JSON_BODY = new Set<string>(["POST", "PATCH"]);
 
-// 失敗レスポンスの詳細(サーバー側のエラーメッセージ)は、フロントではなくサーバー側の
+// 失敗レスポンスの詳細(サーバー側の生のエラー文言)はフロントに出さず、サーバー側の
 // console.error（Workers環境。ブラウザのDevTools Consoleには出ない）にだけ残す
-// (src/server/routes/todos.ts の errorResponse 参照)。ここでは実装の詳細(URL・HTTPメソッド・
-// サーバーの生のエラー文言)を一切含まない汎用エラーだけを呼び出し元(useTodos.ts)へ投げる。
-async function throwOnFailure(res: Response): Promise<void> {
+// (src/server/routes/todos.ts の errorResponse 参照)。
+// ただし一律の汎用メッセージにはせず、エラーの「種類」はステータスコードから区別して伝える
+// (レビュー指摘: 404 と 500 ではユーザーが取るべき行動が違うため、状況が分かるメッセージにする)。
+function messageForStatus(status: number): string {
+  if (status === 404) return "対象のタスクが見つかりません";
+  if (status >= 500) return "サーバーでエラーが発生しました";
+  return "入力内容に誤りがあります";
+}
+
+function throwOnFailure(res: Response): void {
   if (res.ok) return;
-  throw new Error("サーバーとの通信に失敗しました");
+  throw new Error(messageForStatus(res.status));
 }
 
 // fetch の実装を注入できるようにする。本番では既定の fetch(グローバル)を使い、
@@ -33,7 +40,7 @@ export function createTodoApi(fetchImpl: typeof fetch = fetch): TodoApi {
   // fetchTodos(戻り値のJSONが必要)と request(戻り値を捨てる)の両方から使う。
   async function fetchWithCheck(url: string, init?: RequestInit): Promise<Response> {
     const res = await fetchImpl(url, init);
-    await throwOnFailure(res);
+    throwOnFailure(res);
     return res;
   }
 
