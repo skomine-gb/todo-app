@@ -3,8 +3,17 @@ import { TodoList } from "./components/TodoList.tsx";
 import { useTodos } from "./hooks/useTodos.ts";
 
 export function App() {
-  const { todos, addTodo, toggleTodo, deleteTodo, editTodo, isLoading, error, actionError } =
-    useTodos();
+  const {
+    todos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    editTodo,
+    isLoading,
+    error,
+    actionError,
+    isMutating,
+  } = useTodos();
 
   return (
     <main className="app">
@@ -14,7 +23,7 @@ export function App() {
           {actionError}
         </p>
       )}
-      <TodoInput onAdd={addTodo} />
+      <TodoInput onAdd={addTodo} disabled={isMutating} />
       {isLoading && <p className="todo-loading">読み込み中…</p>}
       {!isLoading && error && (
         <p className="todo-error-banner" role="alert">
@@ -22,7 +31,13 @@ export function App() {
         </p>
       )}
       {!isLoading && !error && (
-        <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} onEdit={editTodo} />
+        <TodoList
+          todos={todos}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onEdit={editTodo}
+          disabled={isMutating}
+        />
       )}
     </main>
   );

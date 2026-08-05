@@ -8,9 +8,10 @@ type Props = {
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
+  disabled?: boolean;
 };
 
-export function TodoList({ todos, onToggle, onDelete, onEdit }: Props) {
+export function TodoList({ todos, onToggle, onDelete, onEdit, disabled = false }: Props) {
   if (todos.length === 0) {
     return <p className="todo-empty">タスクがありません</p>;
   }
@@ -24,6 +25,7 @@ export function TodoList({ todos, onToggle, onDelete, onEdit }: Props) {
           onToggle={onToggle}
           onDelete={onDelete}
           onEdit={onEdit}
+          disabled={disabled}
         />
       ))}
     </ul>

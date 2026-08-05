@@ -110,6 +110,27 @@ describe("useTodos", () => {
     expect(result.current.actionError).toBeNull();
   });
 
+  it("操作中は isMutating が true になり、完了後は false に戻る", async () => {
+    const api = createFakeApi(initialTodos);
+    let resolveAdd = () => {};
+    vi.spyOn(api, "addTodo").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAdd = resolve;
+        }),
+    );
+
+    const { result } = renderUseTodos(api);
+    await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
+    expect(result.current.isMutating).toBe(false);
+
+    void result.current.addTodo("レポートを書く");
+    await waitFor(() => expect(result.current.isMutating).toBe(true));
+
+    resolveAdd();
+    await waitFor(() => expect(result.current.isMutating).toBe(false));
+  });
+
   it("addTodo で末尾に未完了のタスクが追加される", async () => {
     const { result } = renderUseTodos(createFakeApi(initialTodos));
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));

@@ -116,4 +116,36 @@ describe("App", () => {
     expect(screen.getByText("牛乳を買う")).toBeTruthy();
     expect(screen.queryByText("パンを買う")).toBeNull();
   });
+
+  it("操作中は他の行のボタンも含めて全ボタンが無効化され、完了後に再度有効になる", async () => {
+    const user = userEvent.setup();
+    const api = createFakeApi(initialTodos);
+    let resolveAdd = () => {};
+    vi.spyOn(api, "addTodo").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAdd = resolve;
+        }),
+    );
+    renderApp(api);
+
+    await screen.findAllByRole("listitem");
+    await user.type(screen.getByLabelText("タスクを入力"), "散歩する");
+    await user.click(screen.getByRole("button", { name: "追加" }));
+
+    const addButton = () => screen.getByRole("button", { name: "追加" }) as HTMLButtonElement;
+    const checkbox = () => screen.getByRole("checkbox", { name: "牛乳を買う" }) as HTMLInputElement;
+    const deleteButton = () =>
+      screen.getByRole("button", { name: "牛乳を買う を削除" }) as HTMLButtonElement;
+
+    await waitFor(() => expect(addButton().disabled).toBe(true));
+    // 追加したのはこの行ではないが、操作中は他の行のチェックボックス・ボタンも無効化される
+    expect(checkbox().disabled).toBe(true);
+    expect(deleteButton().disabled).toBe(true);
+
+    resolveAdd();
+
+    await waitFor(() => expect(addButton().disabled).toBe(false));
+    expect(checkbox().disabled).toBe(false);
+  });
 });
