@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { createD1TodoRepository, type TodoRepository } from "../repository.ts";
 
@@ -10,6 +10,14 @@ const readJsonObjectBody = async (req: { json: () => Promise<unknown> }): Promis
   });
   return body !== null && typeof body === "object" ? body : null;
 };
+
+// エラーレスポンスを返す直前にサーバー側（Workers環境）でログを残す。
+// このログはブラウザのDevTools Consoleには出ず、`wrangler tail`や本番のCloudflare側でしか見えない。
+// フロント（src/front/api/todoApi.ts）には { error: message } のみを返し、詳細はサーバー側に留める。
+function errorResponse(c: Context, status: 400 | 404, message: string) {
+  console.error(`${c.req.method} ${c.req.path} -> ${status}: ${message}`);
+  return c.json({ error: message }, status);
+}
 
 // trim() を通した上で1文字以上であることを検査する（空文字・空白のみを弾く）
 export const createTodoSchema = z.object({
@@ -36,12 +44,12 @@ export const createTodosRoute = (getRepo: (env: Env) => TodoRepository) =>
     .post("/todos", async (c) => {
       const body = await readJsonObjectBody(c.req);
       if (body === null) {
-        return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+        return errorResponse(c, 400, "リクエストボディが JSON ではありません");
       }
 
       const parsed = createTodoSchema.safeParse(body);
       if (!parsed.success) {
-        return c.json({ error: "title を入力してください" }, 400);
+        return errorResponse(c, 400, "title を入力してください");
       }
 
       await getRepo(c.env).create({
@@ -54,17 +62,17 @@ export const createTodosRoute = (getRepo: (env: Env) => TodoRepository) =>
     .patch("/todos/:id", async (c) => {
       const body = await readJsonObjectBody(c.req);
       if (body === null) {
-        return c.json({ error: "リクエストボディが JSON ではありません" }, 400);
+        return errorResponse(c, 400, "リクエストボディが JSON ではありません");
       }
 
       const parsed = updateTodoSchema.safeParse(body);
       if (!parsed.success) {
-        return c.json({ error: "title または completed を正しく指定してください" }, 400);
+        return errorResponse(c, 400, "title または completed を正しく指定してください");
       }
 
       const updated = await getRepo(c.env).update(c.req.param("id"), parsed.data);
       if (!updated) {
-        return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+        return errorResponse(c, 404, "指定された id のタスクが見つかりません");
       }
 
       return c.body(null, 204);
@@ -72,7 +80,7 @@ export const createTodosRoute = (getRepo: (env: Env) => TodoRepository) =>
     .delete("/todos/:id", async (c) => {
       const deleted = await getRepo(c.env).delete(c.req.param("id"));
       if (!deleted) {
-        return c.json({ error: "指定された id のタスクが見つかりません" }, 404);
+        return errorResponse(c, 404, "指定された id のタスクが見つかりません");
       }
 
       return c.body(null, 204);

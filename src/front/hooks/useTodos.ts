@@ -1,48 +1,70 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext } from "react";
+import useSWR from "swr";
+import { TodoApiContext } from "../api/TodoApiContext.ts";
 import type { Todo } from "../../shared/types.ts";
 
-const STORAGE_KEY = "todos";
+const TODOS_KEY = "/api/todos";
 
-// 保存済みのタスク一覧を読み込む。未保存なら空配列から始める。
-// 壊れたデータ（不正な JSON・配列でない JSON）も空配列にフォールバックし、
-// 起動時のクラッシュを防ぐ（docs/03）。壊れたデータは次の保存で上書きされる。
-function loadTodos(): Todo[] {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === null) return [];
-  try {
-    const parsed: unknown = JSON.parse(saved);
-    return Array.isArray(parsed) ? (parsed as Todo[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-// タスク一覧の状態と操作（追加・完了切替・削除・編集）をまとめたカスタムフック。
-// localStorage への保存・読み込みもここに集約する。
+// タスク一覧の状態と操作(追加・完了切替・削除・編集)をまとめたカスタムフック。
+// 一覧はSWRで取得・キャッシュし、更新系(追加/更新/削除)は成功後にmutateで一覧を取り直す。
+// 実際の通信は TodoApiContext から注入された TodoApi に任せ、このフックはHTTPの詳細を知らない
+// (テストではfetchをモックする代わりにfakeのTodoApiを注入すればよい。src/front/tests/helper/todoApi.fake.ts参照)。
+//
+// 既知の制限: API呼び出し失敗時は console.error のみでUIには何も表示しない(STEP12で対応予定)。
+// そのため TodoInput/TodoItem 側の入力欄クリア・編集モード終了は無条件に走ってしまい、
+// 失敗時もユーザーからは操作が成功したように見えてしまう。
 export function useTodos() {
-  const [todos, setTodos] = useState<Todo[]>(loadTodos);
+  const api = useContext(TodoApiContext);
+  const { data, mutate } = useSWR<Todo[]>(TODOS_KEY, () => api.fetchTodos());
+  const todos = data ?? [];
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-  }, [todos]);
+  const addTodo = useCallback(
+    async (title: string) => {
+      try {
+        await api.addTodo(title);
+        await mutate();
+      } catch (error) {
+        console.error("タスクの追加に失敗しました", error);
+      }
+    },
+    [api, mutate],
+  );
 
-  const addTodo = useCallback((title: string) => {
-    setTodos((prev) => [...prev, { id: crypto.randomUUID(), title, completed: false }]);
-  }, []);
+  const toggleTodo = useCallback(
+    async (id: string, completed: boolean) => {
+      try {
+        await api.updateTodo(id, { completed });
+        await mutate();
+      } catch (error) {
+        console.error("完了状態の更新に失敗しました", error);
+      }
+    },
+    [api, mutate],
+  );
 
-  const toggleTodo = useCallback((id: string) => {
-    setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)),
-    );
-  }, []);
+  const deleteTodo = useCallback(
+    async (id: string) => {
+      try {
+        await api.deleteTodo(id);
+        await mutate();
+      } catch (error) {
+        console.error("タスクの削除に失敗しました", error);
+      }
+    },
+    [api, mutate],
+  );
 
-  const deleteTodo = useCallback((id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  }, []);
-
-  const editTodo = useCallback((id: string, title: string) => {
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, title } : todo)));
-  }, []);
+  const editTodo = useCallback(
+    async (id: string, title: string) => {
+      try {
+        await api.updateTodo(id, { title });
+        await mutate();
+      } catch (error) {
+        console.error("タスクの編集に失敗しました", error);
+      }
+    },
+    [api, mutate],
+  );
 
   return { todos, addTodo, toggleTodo, deleteTodo, editTodo };
 }
