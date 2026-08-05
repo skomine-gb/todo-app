@@ -98,4 +98,22 @@ describe("App", () => {
 
     expect(await screen.findByText("タスクの追加に失敗しました")).toBeTruthy();
   });
+
+  it("編集に失敗すると対応するエラーメッセージが表示され、行は編集モードを抜けて元のタイトルのままになる", async () => {
+    const user = userEvent.setup();
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "updateTodo").mockRejectedValue(new Error("失敗"));
+    renderApp(api);
+
+    await user.click(await screen.findByRole("button", { name: "牛乳を買う を編集" }));
+    const input = screen.getByRole("textbox", { name: "牛乳を買う を編集" });
+    await user.clear(input);
+    await user.type(input, "パンを買う");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+
+    expect(await screen.findByText("タスクの編集に失敗しました")).toBeTruthy();
+    // 編集は失敗しても onEdit の成否を待たずに表示モードへ戻るため、元のタイトルのままになる
+    expect(screen.getByText("牛乳を買う")).toBeTruthy();
+    expect(screen.queryByText("パンを買う")).toBeNull();
+  });
 });
