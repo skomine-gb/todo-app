@@ -16,6 +16,9 @@ export function App() {
     isMutating,
   } = useTodos();
 
+  const completedCount = todos.filter((todo) => todo.completed).length;
+  const incompleteCount = todos.length - completedCount;
+
   return (
     <main className="app">
       <h1>My TODO</h1>
@@ -36,6 +39,11 @@ export function App() {
           {error && (
             <p className="todo-error-banner" role="alert">
               最新の状態を取得できませんでした
+            </p>
+          )}
+          {todos.length > 0 && (
+            <p className="todo-summary">
+              全{todos.length}件（未完了{incompleteCount}件・完了{completedCount}件）
             </p>
           )}
           <TodoList
