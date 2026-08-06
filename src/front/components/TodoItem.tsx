@@ -102,6 +102,7 @@ function TodoItemComponent({ todo, onToggle, onDelete, onEdit, disabled = false 
         </button>
         <button
           type="button"
+          className="todo-button-danger"
           onClick={() => onDelete(todo.id)}
           aria-label={`${todo.title} を削除`}
           disabled={disabled}
