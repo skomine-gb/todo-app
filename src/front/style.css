@@ -84,11 +84,13 @@ h1 {
   font-size: 14px;
 }
 
-/* タスク一覧 */
+/* タスク一覧：件数が増えても画面が間延びしないよう、一定の高さで内側にスクロールさせる */
 .todo-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .todo-item {
