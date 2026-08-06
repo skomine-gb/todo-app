@@ -108,6 +108,8 @@ describe("useTodos", () => {
 
     await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
     expect(result.current.actionError).toBeNull();
+    // 再取得だけが失敗しても、直前に取得できていたデータはSWRに残っているので hasData は true のまま
+    expect(result.current.hasData).toBe(true);
   });
 
   it("操作中は isMutating が true になり、完了後は false に戻る", async () => {

@@ -86,6 +86,25 @@ describe("App", () => {
     expect(await screen.findByText("読み込みに失敗しました")).toBeTruthy();
   });
 
+  it("追加は成功し再取得だけ失敗すると、一覧は表示を保ったまま再取得失敗の案内が出る", async () => {
+    const user = userEvent.setup();
+    const api = createFakeApi(initialTodos);
+    vi.spyOn(api, "fetchTodos")
+      .mockResolvedValueOnce(initialTodos) // 初回の一覧取得
+      .mockRejectedValue(new Error("再取得に失敗")); // addTodo成功後、mutateによる再取得
+    renderApp(api);
+
+    const before = (await screen.findAllByRole("listitem")).length;
+    await user.type(screen.getByLabelText("タスクを入力"), "散歩する");
+    await user.click(screen.getByRole("button", { name: "追加" }));
+
+    expect(await screen.findByText("最新の状態を取得できませんでした")).toBeTruthy();
+    // 追加は成功しているので一覧は消えず、直前の件数のまま表示され続ける
+    // (mutateによる再取得自体は失敗しているので、新しいタスクの反映は確認しない)
+    expect(screen.getAllByRole("listitem")).toHaveLength(before);
+    expect(screen.queryByText("タスクの追加に失敗しました")).toBeNull();
+  });
+
   it("追加に失敗すると対応するエラーメッセージが表示される", async () => {
     const user = userEvent.setup();
     const api = createFakeApi(initialTodos);

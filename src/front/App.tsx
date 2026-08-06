@@ -5,6 +5,7 @@ import { useTodos } from "./hooks/useTodos.ts";
 export function App() {
   const {
     todos,
+    hasData,
     addTodo,
     toggleTodo,
     deleteTodo,
@@ -25,19 +26,26 @@ export function App() {
       )}
       <TodoInput onAdd={addTodo} disabled={isMutating} />
       {isLoading && <p className="todo-loading">読み込み中…</p>}
-      {!isLoading && error && (
+      {!isLoading && !hasData && error && (
         <p className="todo-error-banner" role="alert">
           読み込みに失敗しました
         </p>
       )}
-      {!isLoading && !error && (
-        <TodoList
-          todos={todos}
-          onToggle={toggleTodo}
-          onDelete={deleteTodo}
-          onEdit={editTodo}
-          disabled={isMutating}
-        />
+      {!isLoading && hasData && (
+        <>
+          {error && (
+            <p className="todo-error-banner" role="alert">
+              最新の状態を取得できませんでした
+            </p>
+          )}
+          <TodoList
+            todos={todos}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onEdit={editTodo}
+            disabled={isMutating}
+          />
+        </>
       )}
     </main>
   );

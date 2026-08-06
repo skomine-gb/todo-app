@@ -13,6 +13,12 @@ const TODOS_KEY = "/api/todos";
 // 一覧取得の読み込み中・失敗はSWRの isLoading/error をそのまま公開する。
 // 操作(追加/更新/削除/編集)の失敗は actionError にメッセージを入れて呼び出し元(App)に伝える。
 //
+// error は「初回取得の失敗」と「(mutateなどによる)再検証の失敗」のどちらでも立つため、
+// error の有無だけでは「表示できるデータがあるか」を判断できない(再検証の失敗時もSWRは
+// 直前のdataを保持している)。そこで hasData(dataが一度でも取得できているか)を別に公開し、
+// 呼び出し元(App)が「データが無い→全画面エラー」「データはある→一覧は出したまま添え書き」
+// を区別できるようにする。
+//
 // 4つの操作はどれも「APIを呼ぶ」→「mutateで一覧を取り直す」という同じ形なので runAction にまとめた。
 // try/catchを2段に分けているのは、前半(API呼び出し)が失敗したときだけ actionError をセットしたいから。
 // 後半(mutate)は操作自体が成功したあとの単なる再取得なので、ここだけ失敗しても「操作に失敗した」とは
@@ -29,6 +35,7 @@ export function useTodos() {
     api.fetchTodos(),
   );
   const todos = data ?? [];
+  const hasData = data !== undefined;
   const [actionError, setActionError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
 
@@ -80,6 +87,7 @@ export function useTodos() {
 
   return {
     todos,
+    hasData,
     addTodo,
     toggleTodo,
     deleteTodo,
