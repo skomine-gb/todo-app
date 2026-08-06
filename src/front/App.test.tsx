@@ -72,6 +72,24 @@ describe("App", () => {
     await waitFor(() => expect(item?.classList.contains("completed")).toBe(false));
   });
 
+  it("全件数・未完了件数・完了件数が表示され、チェック操作で件数が更新される", async () => {
+    const user = userEvent.setup();
+    renderApp(createFakeApi(initialTodos));
+
+    expect(await screen.findByText("全3件（未完了2件・完了1件）")).toBeTruthy();
+
+    await user.click(await screen.findByRole("checkbox", { name: "牛乳を買う" }));
+
+    expect(await screen.findByText("全3件（未完了1件・完了2件）")).toBeTruthy();
+  });
+
+  it("0件のときは件数表示が出ない", async () => {
+    renderApp(createFakeApi([]));
+
+    expect(await screen.findByText("タスクがありません")).toBeTruthy();
+    expect(screen.queryByText(/^全\d+件/)).toBeNull();
+  });
+
   it("読み込み中は「読み込み中…」が表示される", () => {
     renderApp(createFakeApi(initialTodos));
 
