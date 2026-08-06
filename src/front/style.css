@@ -163,6 +163,12 @@ button.todo-button-danger {
   color: var(--error);
 }
 
+/* 確定など入力内容を保存する操作は枠線・文字を緑系にする */
+button.todo-button-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .todo-edit-form .todo-input-error {
   flex-basis: 100%;
   margin: 0;
