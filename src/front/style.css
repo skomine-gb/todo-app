@@ -169,6 +169,11 @@ button.todo-button-primary {
   color: var(--accent);
 }
 
+/* ボタン全般：カーソルが乗っているかを見た目で分かるように薄くする */
+.app button:not(:disabled):hover {
+  opacity: 0.8;
+}
+
 .todo-edit-form .todo-input-error {
   flex-basis: 100%;
   margin: 0;
