@@ -63,7 +63,7 @@ function TodoItemComponent({ todo, onToggle, onDelete, onEdit, disabled = false 
             aria-label={`${todo.title} を編集`}
             disabled={disabled}
           />
-          <button type="submit" className="todo-button-primary" disabled={disabled}>
+          <button type="submit" className="todo-button-confirm" disabled={disabled}>
             確定
           </button>
           <button type="button" onClick={cancelEditing} disabled={disabled}>
