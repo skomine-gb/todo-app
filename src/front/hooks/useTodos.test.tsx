@@ -99,7 +99,7 @@ describe("useTodos", () => {
     const api = createFakeApi(initialTodos);
     vi.spyOn(api, "fetchTodos")
       .mockResolvedValueOnce(initialTodos) // 初回の一覧取得
-      .mockRejectedValueOnce(new Error("再取得に失敗")); // addTodo成功後、mutateによる再取得
+      .mockRejectedValue(new Error("再取得に失敗")); // addTodo成功後、mutateによる再取得(SWRが自動リトライしても失敗を維持する)
 
     const { result } = renderUseTodos(api);
     await waitFor(() => expect(result.current.todos).toEqual(initialTodos));
