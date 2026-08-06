@@ -1,4 +1,4 @@
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import useSWR from "swr";
 import { TodoApiContext } from "../api/TodoApiContext.ts";
 import type { Todo } from "../../shared/types.ts";
@@ -10,61 +10,91 @@ const TODOS_KEY = "/api/todos";
 // 実際の通信は TodoApiContext から注入された TodoApi に任せ、このフックはHTTPの詳細を知らない
 // (テストではfetchをモックする代わりにfakeのTodoApiを注入すればよい。src/front/tests/helper/todoApi.fake.ts参照)。
 //
-// 既知の制限: API呼び出し失敗時は console.error のみでUIには何も表示しない(STEP12で対応予定)。
-// そのため TodoInput/TodoItem 側の入力欄クリア・編集モード終了は無条件に走ってしまい、
-// 失敗時もユーザーからは操作が成功したように見えてしまう。
+// 一覧取得の読み込み中・失敗はSWRの isLoading/error をそのまま公開する。
+// 操作(追加/更新/削除/編集)の失敗は actionError にメッセージを入れて呼び出し元(App)に伝える。
+//
+// error は「初回取得の失敗」と「(mutateなどによる)再検証の失敗」のどちらでも立つため、
+// error の有無だけでは「表示できるデータがあるか」を判断できない(再検証の失敗時もSWRは
+// 直前のdataを保持している)。そこで hasData(dataが一度でも取得できているか)を別に公開し、
+// 呼び出し元(App)が「データが無い→全画面エラー」「データはある→一覧は出したまま添え書き」
+// を区別できるようにする。
+//
+// 4つの操作はどれも「APIを呼ぶ」→「mutateで一覧を取り直す」という同じ形なので runAction にまとめた。
+// try/catchを2段に分けているのは、前半(API呼び出し)が失敗したときだけ actionError をセットしたいから。
+// 後半(mutate)は操作自体が成功したあとの単なる再取得なので、ここだけ失敗しても「操作に失敗した」とは
+// 言えない(例: 追加は成功したのに「追加に失敗しました」と表示するのは誤り)。再取得の失敗は
+// SWR自身の error に表れるので、actionError は立てずログだけ残す。
+//
+// isMutating は「4操作のうちどれかが実行中か」を表す。actionError は1つの状態を全操作・
+// 全行で共有しているため、複数の操作が同時に走ると「別の行の結果が表示される」
+// 「表示中のエラーが無関係な操作で消える」といった食い違いが起きる。isMutating を
+// 呼び出し元(App)でボタンの無効化に使ってもらうことで、常に1操作ずつ順番に実行されるようにする。
 export function useTodos() {
   const api = useContext(TodoApiContext);
-  const { data, mutate } = useSWR<Todo[]>(TODOS_KEY, () => api.fetchTodos());
+  const { data, error, isLoading, mutate } = useSWR<Todo[], Error>(TODOS_KEY, () =>
+    api.fetchTodos(),
+  );
   const todos = data ?? [];
+  const hasData = data !== undefined;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
 
-  const addTodo = useCallback(
-    async (title: string) => {
+  const runAction = useCallback(
+    async (message: string, operation: () => Promise<void>) => {
+      setActionError(null);
+      setIsMutating(true);
       try {
-        await api.addTodo(title);
-        await mutate();
-      } catch (error) {
-        console.error("タスクの追加に失敗しました", error);
+        try {
+          await operation();
+        } catch (err) {
+          console.error(message, err);
+          setActionError(message);
+          return;
+        }
+        try {
+          await mutate();
+        } catch (err) {
+          console.error("一覧の再取得に失敗しました", err);
+        }
+      } finally {
+        setIsMutating(false);
       }
     },
-    [api, mutate],
+    [mutate],
+  );
+
+  const addTodo = useCallback(
+    (title: string) => runAction("タスクの追加に失敗しました", () => api.addTodo(title)),
+    [runAction, api],
   );
 
   const toggleTodo = useCallback(
-    async (id: string, completed: boolean) => {
-      try {
-        await api.updateTodo(id, { completed });
-        await mutate();
-      } catch (error) {
-        console.error("完了状態の更新に失敗しました", error);
-      }
-    },
-    [api, mutate],
+    (id: string, completed: boolean) =>
+      runAction("完了状態の更新に失敗しました", () => api.updateTodo(id, { completed })),
+    [runAction, api],
   );
 
   const deleteTodo = useCallback(
-    async (id: string) => {
-      try {
-        await api.deleteTodo(id);
-        await mutate();
-      } catch (error) {
-        console.error("タスクの削除に失敗しました", error);
-      }
-    },
-    [api, mutate],
+    (id: string) => runAction("タスクの削除に失敗しました", () => api.deleteTodo(id)),
+    [runAction, api],
   );
 
   const editTodo = useCallback(
-    async (id: string, title: string) => {
-      try {
-        await api.updateTodo(id, { title });
-        await mutate();
-      } catch (error) {
-        console.error("タスクの編集に失敗しました", error);
-      }
-    },
-    [api, mutate],
+    (id: string, title: string) =>
+      runAction("タスクの編集に失敗しました", () => api.updateTodo(id, { title })),
+    [runAction, api],
   );
 
-  return { todos, addTodo, toggleTodo, deleteTodo, editTodo };
+  return {
+    todos,
+    hasData,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    editTodo,
+    isLoading,
+    error,
+    actionError,
+    isMutating,
+  };
 }
