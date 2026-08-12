@@ -42,6 +42,9 @@ jobs:
         with:
           node-version: "24"
           cache: true
+          # デフォルトは true で、アクションが暗黙に vp install を実行してしまう。
+          # インストールは次のステップで（--frozen-lockfile を明示して）1回だけ行う
+          run-install: false
 
       # lockfile（pnpm-lock.yaml）どおりに依存を入れる。
       # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
