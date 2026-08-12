@@ -13,7 +13,9 @@ on:
     branches: [main]
 
 # 同じ PR に連続で push したとき、走行中の古い実行をキャンセルする節約設定。
-# main への push はキャンセルしない（デプロイの前提になるため必ず完走させる）。
+# main への push では走行中の run をキャンセルしない。なお GitHub の仕様で、同じグループに
+# 待機できる run は 1 件までのため、短時間に連続マージすると中間コミットの待機中 run は
+# 最新のものに置き換えられる（最新コミットの run は必ず実行されるので、結果が古いままにはならない）。
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

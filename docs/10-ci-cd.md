@@ -40,7 +40,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 ## 5. 運用メモ
 
 - **`setup-vp` のバージョンは正確なタグで指定する**：上流の moving tag `v1` は v1.15.0 で凍結されており今後更新されない。`voidzero-dev/setup-vp@v1.17.0` のように正確なバージョンを書き、更新は意図的に行う
-- **`vp install` には `--frozen-lockfile` を明示する**：素の `vp install` が CI 環境で自動的に lockfile 厳守になる保証はドキュメント化されていない。「ローカルと同じ wrangler / workerd を CI でも使う」保証の要なので、フラグを省略しない
+- **`vp install` には `--frozen-lockfile` を明示する**：実は CI 環境では pnpm のデフォルトでも lockfile 厳守になる（`CI=true` のとき `frozen-lockfile` が既定で有効になることが pnpm の公式ドキュメントに明記されている）。それでもフラグを書くのは、「ローカルと同じ wrangler / workerd を CI でも使う」という意図を、デフォルト任せにせずコマンド自体に残すため
 - **CI が red になったら**：Actions タブで失敗したステップのログを見る。ローカルで同じコマンド（`vp check` など）を実行すれば再現できるはず。ローカルで通るのに CI で落ちる場合は、依存バージョンのズレ（lockfile のコミット忘れ）や生成ファイルの差分を疑う
 - **`wrangler.jsonc` の `compatibility_date`**：lockfile で固定された workerd が対応している日付にする必要がある（wrangler 更新時に注意）。CI も `--frozen-lockfile` で同じ workerd を使うため、ローカルで通れば CI でも通る
 - **fork からの PR**：GitHub の仕様で Secrets は fork からの PR には渡らない。`ci` job は Secrets を使わないので問題なく動く
