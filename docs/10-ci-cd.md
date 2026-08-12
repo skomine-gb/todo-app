@@ -20,16 +20,16 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ローカルの検証コマンド（[05 §5](./05-directory-and-steps.md#5-検証コマンド)）と同じものを GitHub 上でも実行する。**CI はローカル検証の代わりではなく保険**。ローカルで通してから push する運用は変わらない。
 
-| ステップ                                         | 内容                                                                                                  |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `actions/checkout`                               | リポジトリのコードを CI マシンに取得                                                                  |
-| `voidzero-dev/setup-vp`                          | Vite+ 公式アクション。vp CLI・Node.js・pnpm のセットアップと依存キャッシュをこれ 1 つで行う           |
-| `vp install --frozen-lockfile`                   | lockfile どおりに依存をインストール。ローカルと同じバージョンの wrangler / workerd が使われる         |
-| `git diff --exit-code worker-configuration.d.ts` | install 時に再生成される型定義ファイルとコミット済み内容のズレ（`vp run types` のコミット忘れ）を検出 |
-| `vp check`                                       | 整形・Lint・型チェック                                                                                |
-| `vp test`                                        | フロントエンドのテスト（jsdom）                                                                       |
-| `vp run test:worker`                             | バックエンドのテスト（Workers ランタイム）                                                            |
-| `vp build`                                       | 本番と同じ手順でビルドできることを確認                                                                |
+| ステップ                                | 内容                                                                                          |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `actions/checkout`                      | リポジトリのコードを CI マシンに取得                                                          |
+| `voidzero-dev/setup-vp`                 | Vite+ 公式アクション。vp CLI・Node.js・pnpm のセットアップと依存キャッシュをこれ 1 つで行う   |
+| `vp install --frozen-lockfile`          | lockfile どおりに依存をインストール。ローカルと同じバージョンの wrangler / workerd が使われる |
+| `vp run types` + `git diff --exit-code` | 型定義ファイルを再生成し、コミット済み内容とのズレ（`vp run types` のコミット忘れ）を検出     |
+| `vp check`                              | 整形・Lint・型チェック                                                                        |
+| `vp test`                               | フロントエンドのテスト（jsdom）                                                               |
+| `vp run test:worker`                    | バックエンドのテスト（Workers ランタイム）                                                    |
+| `vp build`                              | 本番と同じ手順でビルドできることを確認                                                        |
 
 `setup-vp` が `vp` を CI マシンの PATH に入れるため、検証コマンドはローカルとまったく同じ書き方になる。pnpm のバージョンは `package.json` の `devEngines.packageManager` から解決されるので、ワークフロー側に書く必要はない（単一の情報源）。
 
