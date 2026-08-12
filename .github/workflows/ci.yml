@@ -61,7 +61,8 @@ jobs:
       - run: pnpm exec vp test
 
       # バックエンドのテスト（Workers ランタイム = workerd 上で実行）
-      - run: pnpm run test:worker
+      # ローカルの `vp run test:worker` と同じく vp 経由で実行する
+      - run: pnpm exec vp run test:worker
 
       # 本番と同じ手順でビルドできることを確認（dist/client + Worker 本体）
       - run: pnpm exec vp build

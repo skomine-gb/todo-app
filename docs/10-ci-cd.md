@@ -28,7 +28,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 | `git diff --exit-code worker-configuration.d.ts` | install 時に再生成される型定義ファイルとコミット済み内容のズレ（`vp run types` のコミット忘れ）を検出 |
 | `pnpm exec vp check`                             | 整形・Lint・型チェック（ローカルの `vp check` と同じ）                                                |
 | `pnpm exec vp test`                              | フロントエンドのテスト（jsdom）                                                                       |
-| `pnpm run test:worker`                           | バックエンドのテスト（Workers ランタイム）                                                            |
+| `pnpm exec vp run test:worker`                   | バックエンドのテスト（Workers ランタイム。ローカルの `vp run test:worker` と同じ）                    |
 | `pnpm exec vp build`                             | 本番と同じ手順でビルドできることを確認                                                                |
 
 CI 上では `vp` コマンドを `pnpm exec vp ...` の形で呼ぶ。ローカルでは `vp` をグローバルに使えるが、CI マシンには無いので、`node_modules` にインストールされた実体を pnpm 経由で呼び出すため。
