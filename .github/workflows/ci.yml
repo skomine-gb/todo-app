@@ -34,35 +34,34 @@ jobs:
       # リポジトリのコードを CI マシンに取得する
       - uses: actions/checkout@v5
 
-      # pnpm を入れる。version は package.json の devEngines.packageManager と揃える（更新時は両方直す）
-      - uses: pnpm/action-setup@v4
+      # Vite+ 公式のセットアップアクション。vp CLI・Node.js・pnpm の用意と依存キャッシュを
+      # これ 1 つで面倒を見る（pnpm のバージョンは package.json の devEngines.packageManager
+      # から解決されるため、ここに書く必要がない = 二重管理にならない）。
+      # 注意: 上流の moving tag `v1` は v1.15.0 で凍結済みのため、正確なバージョンを指定する
+      - uses: voidzero-dev/setup-vp@v1.17.0
         with:
-          version: 11.16.0
-
-      # Node.js を入れる。cache: pnpm は「pnpm が先にインストール済み」でないと効かないので、この順序が必須
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: pnpm
+          node-version: "24"
+          cache: true
 
       # lockfile（pnpm-lock.yaml）どおりに依存を入れる。
       # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
-      - run: pnpm install --frozen-lockfile
+      - run: vp install --frozen-lockfile
 
       # install 時の postinstall（wrangler types）が worker-configuration.d.ts を再生成する。
       # コミット済みの内容と差分が出る＝「bindings 変更後に vp run types の結果をコミットし忘れた」を検出できる
       - name: 生成ファイル（worker-configuration.d.ts）に差分がないか確認
         run: git diff --exit-code worker-configuration.d.ts
 
+      # ここから下はローカルの検証コマンドと完全に同じ（setup-vp が vp を PATH に入れるため）
+
       # 整形・Lint・型チェック
-      - run: pnpm exec vp check
+      - run: vp check
 
       # フロントエンドのテスト（jsdom）
-      - run: pnpm exec vp test
+      - run: vp test
 
       # バックエンドのテスト（Workers ランタイム = workerd 上で実行）
-      # ローカルの `vp run test:worker` と同じく vp 経由で実行する
-      - run: pnpm exec vp run test:worker
+      - run: vp run test:worker
 
       # 本番と同じ手順でビルドできることを確認（dist/client + Worker 本体）
-      - run: pnpm exec vp build
+      - run: vp build
