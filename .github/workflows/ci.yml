@@ -1,0 +1,58 @@
+# CI（継続的インテグレーション）
+# PR の作成・更新のたびに「整形・Lint・型チェック・テスト・ビルド」を自動実行し、
+# ローカルの STEP 完了基準（vp check / vp test / vp run test:worker）と同じ検証を GitHub 上でも保証する。
+# 詳細は docs/10-ci-cd.md を参照。
+
+name: CI
+
+on:
+  # PR の作成時・更新時（push のたび）に実行される
+  pull_request:
+  # main へ push（= PR のマージ）されたときにも実行される
+  push:
+    branches: [main]
+
+# 同じ PR に連続で push したとき、走行中の古い実行をキャンセルする節約設定。
+# main への push はキャンセルしない（デプロイの前提になるため必ず完走させる）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリのコードを CI マシンに取得する
+      - uses: actions/checkout@v5
+
+      # pnpm を入れる。version は package.json の devEngines.packageManager と揃える（更新時は両方直す）
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+
+      # Node.js を入れる。cache: pnpm は「pnpm が先にインストール済み」でないと効かないので、この順序が必須
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # lockfile（pnpm-lock.yaml）どおりに依存を入れる。
+      # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
+      - run: pnpm install --frozen-lockfile
+
+      # install 時の postinstall（wrangler types）が worker-configuration.d.ts を再生成する。
+      # コミット済みの内容と差分が出る＝「bindings 変更後に vp run types の結果をコミットし忘れた」を検出できる
+      - name: 生成ファイル（worker-configuration.d.ts）に差分がないか確認
+        run: git diff --exit-code worker-configuration.d.ts
+
+      # 整形・Lint・型チェック
+      - run: pnpm exec vp check
+
+      # フロントエンドのテスト（jsdom）
+      - run: pnpm exec vp test
+
+      # バックエンドのテスト（Workers ランタイム = workerd 上で実行）
+      - run: pnpm run test:worker
+
+      # 本番と同じ手順でビルドできることを確認（dist/client + Worker 本体）
+      - run: pnpm exec vp build

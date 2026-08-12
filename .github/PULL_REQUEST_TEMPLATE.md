@@ -24,7 +24,9 @@ Issueで宣言した「やること」と実装の対応を書く。
 
 - [ ] `vp check`（整形・Lint・型チェック）が通る
 - [ ] `vp test` が通る
+- [ ] `vp run test:worker`（バックエンドのテスト）が通る
 - [ ] `vp dev` でブラウザ確認した
+- [ ] CI（GitHub Actions）が green
 
 ## スコープ外（後続STEP）
 

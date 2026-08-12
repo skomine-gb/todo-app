@@ -27,6 +27,7 @@
 | 7   | [07-db-schema.md](./07-db-schema.md)                       | 2        | データベース設計（todos テーブルとマイグレーション） |
 | 8   | [08-api-design.md](./08-api-design.md)                     | 2        | API設計（エンドポイントとエラー処理）                |
 | 9   | [09-backend-steps.md](./09-backend-steps.md)               | 2        | バックエンドの実装ステップ（STEP 8〜12）             |
+| 10  | [10-ci-cd.md](./10-ci-cd.md)                               | 共通     | CI/CD（GitHub Actions での自動検証・自動デプロイ）   |
 
 ## 設計の進め方
 
