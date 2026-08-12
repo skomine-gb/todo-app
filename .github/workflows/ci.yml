@@ -37,12 +37,13 @@ jobs:
       - uses: actions/checkout@v5
 
       # Vite+ 公式のセットアップアクション。vp CLI・Node.js・pnpm の用意と依存キャッシュを
-      # これ 1 つで面倒を見る（pnpm のバージョンは package.json の devEngines.packageManager
-      # から解決されるため、ここに書く必要がない = 二重管理にならない）。
+      # これ 1 つで面倒を見る。バージョンはどちらもここには書かない＝二重管理にならない：
+      # - pnpm: package.json の devEngines.packageManager から解決
+      # - Node.js: .node-version から解決（ローカルの Vite+ も同じファイルを読む）
       # 注意: 上流の moving tag `v1` は v1.15.0 で凍結済みのため、正確なバージョンを指定する
       - uses: voidzero-dev/setup-vp@v1.17.0
         with:
-          node-version: "24"
+          node-version-file: .node-version
           cache: true
           # デフォルトは true で、アクションが暗黙に vp install を実行してしまう。
           # インストールは次のステップで（--frozen-lockfile を明示して）1回だけ行う

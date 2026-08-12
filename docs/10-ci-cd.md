@@ -31,7 +31,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 | `vp run test:worker`                    | バックエンドのテスト（Workers ランタイム）                                                    |
 | `vp build`                              | 本番と同じ手順でビルドできることを確認                                                        |
 
-`setup-vp` が `vp` を CI マシンの PATH に入れるため、検証コマンドはローカルとまったく同じ書き方になる。pnpm のバージョンは `package.json` の `devEngines.packageManager` から解決されるので、ワークフロー側に書く必要はない（単一の情報源）。
+`setup-vp` が `vp` を CI マシンの PATH に入れるため、検証コマンドはローカルとまったく同じ書き方になる。バージョンの情報源はワークフローの外に 1 か所ずつ：pnpm は `package.json` の `devEngines.packageManager`、Node.js は `.node-version`（ローカルの Vite+ も CI の `setup-vp` も同じファイルを読むため、二重管理にならない）。
 
 ## 4. deploy job（自動デプロイ）
 
