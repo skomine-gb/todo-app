@@ -26,6 +26,9 @@ concurrency:
 permissions:
   contents: read
 
+# アクション（uses:）はタグではなくコミット SHA で固定している（# 後ろのバージョンは人間用のラベル）。
+# タグは上流で別のコミットに付け替えられる可能性があり、サプライチェーン攻撃の入り口になるため。
+# 更新するときは `pinact run -u` を実行して、最新化と SHA 固定をまとめて行う。
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -34,14 +37,13 @@ jobs:
     timeout-minutes: 10
     steps:
       # リポジトリのコードを CI マシンに取得する
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Vite+ 公式のセットアップアクション。vp CLI・Node.js・pnpm の用意と依存キャッシュを
       # これ 1 つで面倒を見る。バージョンはどちらもここには書かない＝二重管理にならない：
       # - pnpm: package.json の devEngines.packageManager から解決
       # - Node.js: .node-version から解決（ローカルの Vite+ も同じファイルを読む）
-      # 注意: 上流の moving tag `v1` は v1.15.0 で凍結済みのため、正確なバージョンを指定する
-      - uses: voidzero-dev/setup-vp@v1.17.0
+      - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
         with:
           node-version-file: .node-version
           cache: true
