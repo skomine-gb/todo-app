@@ -72,10 +72,11 @@ jobs:
       - run: vp build
 
   deploy:
-    # main への push（= PR のマージ）のときだけ動かす。PR では動かない。
-    # GitHub の仕様で fork からの PR には Secrets が渡らないが、この条件により
-    # Secrets を使う deploy job がそもそも PR で実行されないため問題にならない
-    if: github.event_name == 'push'
+    # main への push（= PR のマージ）のときだけ動かす。PR では動かない（fork からの PR に
+    # Secrets が渡らない問題もこれで回避される。詳細は docs/10 §5）。
+    # ref 条件は「on.push が main 限定」への暗黙依存を断つ保険：将来 on.push にタグや
+    # ブランチを足しても、main 以外から本番デプロイが走ることはない
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # ci job の全ステップが成功したときだけ実行される（検証を通ったコードだけをデプロイする）
     needs: ci
     runs-on: ubuntu-latest
@@ -95,19 +96,24 @@ jobs:
       # デプロイする成果物を作る（dist/client = SPA と Worker 本体）
       - run: vp build
 
-      # 本番 D1 に未適用のマイグレーションだけを適用する。デプロイより先に行うのは、
-      # 新しいコードが新しいスキーマを前提に動くため（逆順だと新コードが古いテーブルを触る瞬間ができる）。
-      # wranglerVersion は指定しない：vp install で node_modules に入った lockfile どおりの
-      # wrangler をアクションがそのまま使うため、バージョンの二重管理にならない
+      # 本番 D1 に未適用のマイグレーションだけを適用する（デプロイより先。順序の理由と
+      # 「マイグレーションは後方互換に書く」ルールは docs/10 §4 を参照）。
+      # - DB はデータベース名ではなく binding 名（wrangler.jsonc の "DB"）で指定し、名前の二重管理を避ける
+      # - packageManager: npm は必須。未指定だと pnpm-lock.yaml から pnpm と推測されるが、
+      #   ランナーの PATH に pnpm コマンドはない（Vite+ は pnpm を内部管理していて公開しない）。
+      #   npx なら存在し、vp install で node_modules に入った lockfile どおりの wrangler が使われる
+      #   （wranglerVersion 未指定 = インストール済みの wrangler をそのまま使う、というアクションの仕様）
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply todo-app-db --remote
+          packageManager: npm
+          command: d1 migrations apply DB --remote
 
       # Worker と SPA（dist/client を Static Assets として）を本番へデプロイ
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: npm
           command: deploy
