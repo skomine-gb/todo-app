@@ -55,9 +55,6 @@ jobs:
       # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
       - run: vp install --frozen-lockfile
 
-      # 生成ファイル（worker-configuration.d.ts）の鮮度チェックは CI ではなく
-      # pre-push フック（.vite-hooks/pre-push）で行う。push 前に手元で数秒で検出できるため。
-
       # ここから下はローカルの検証コマンドと完全に同じ（setup-vp が vp を PATH に入れるため）
 
       # 整形・Lint・型チェック
