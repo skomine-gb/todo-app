@@ -99,10 +99,7 @@ jobs:
       # 本番 D1 に未適用のマイグレーションだけを適用する（デプロイより先。順序の理由と
       # 「マイグレーションは後方互換に書く」ルールは docs/10 §4 を参照）。
       # - DB はデータベース名ではなく binding 名（wrangler.jsonc の "DB"）で指定し、名前の二重管理を避ける
-      # - packageManager: npm は必須。未指定だと pnpm-lock.yaml から pnpm と推測されるが、
-      #   ランナーの PATH に pnpm コマンドはない（Vite+ は pnpm を内部管理していて公開しない）。
-      #   npx なら存在し、vp install で node_modules に入った lockfile どおりの wrangler が使われる
-      #   （wranglerVersion 未指定 = インストール済みの wrangler をそのまま使う、というアクションの仕様）
+      # - packageManager: npm は必須。ランナーの PATH に pnpm コマンドがないため（理由の詳細は docs/10 §4）
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
