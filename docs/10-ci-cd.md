@@ -34,21 +34,22 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ## 4. deploy job（自動デプロイ）
 
-main への push（= PR のマージ）で `ci` job が成功したときだけ実行される（`needs: ci` + `if: github.event_name == 'push'`）。検証を通ったコードだけが本番に届く。
+main への push（= PR のマージ）で `ci` job が成功したときだけ実行される（`needs: ci` + push かつ main ブランチの `if` 条件）。検証を通ったコードだけが本番に届く。
 
-| ステップ                                                        | 内容                                                                            |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| checkout〜`vp install`                                          | `ci` job と同じセットアップ（job ごとに別マシンで動くため再セットアップが必要） |
-| `vp build`                                                      | デプロイする成果物を作る（`dist/client` = SPA と Worker 本体）                  |
-| `wrangler-action`（`d1 migrations apply todo-app-db --remote`） | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)）      |
-| `wrangler-action`（`deploy`）                                   | Worker と SPA（Static Assets）を本番へデプロイ                                  |
+| ステップ                                               | 内容                                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| checkout〜`vp install`                                 | `ci` job と同じセットアップ（job ごとに別マシンで動くため再セットアップが必要） |
+| `vp build`                                             | デプロイする成果物を作る（`dist/client` = SPA と Worker 本体）                  |
+| `wrangler-action`（`d1 migrations apply DB --remote`） | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)）      |
+| `wrangler-action`（`deploy`）                          | Worker と SPA（Static Assets）を本番へデプロイ                                  |
 
 設計上のポイント：
 
-- **[cloudflare/wrangler-action](https://github.com/cloudflare/wrangler-action) を使う**：Cloudflare 公式のアクションで、API トークンの受け渡しと wrangler の実行を面倒見てくれる。`wranglerVersion` は指定しない —— `vp install` で node_modules に入った lockfile どおりの wrangler をアクションがそのまま使うため、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）
-- **マイグレーション → デプロイの順**：新しいコードは新しいスキーマを前提に動くため、先にスキーマを合わせる。逆順だと、新コードが古いテーブルを触る瞬間ができてしまう
+- **[cloudflare/wrangler-action](https://github.com/cloudflare/wrangler-action) を使う**：Cloudflare 公式のアクションで、API トークンの受け渡しと wrangler の実行を面倒見てくれる。`wranglerVersion` は指定しない —— `vp install` で node_modules に入った lockfile どおりの wrangler をアクションがそのまま使うため、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）。`packageManager: npm` の明示は必須 —— 未指定だと pnpm-lock.yaml から pnpm と推測されるが、GitHub のランナーに pnpm コマンドはなく（Vite+ も pnpm を内部管理していて PATH に公開しない）、実行時エラーになる。npx は存在し、node_modules の wrangler をそのまま使う
+- **DB は binding 名で指定**：`d1 migrations apply DB` の `DB` は wrangler.jsonc の binding 名。データベース名（`todo-app-db`）を書き写すと二重管理になるうえ、名前が config とズレたとき wrangler はアカウント内を名前で検索するため、古い DB に黙って適用される事故がありうる
+- **マイグレーション → デプロイの順**：新しいコードは新しいスキーマを前提に動くため、先にスキーマを合わせる。ただしこの順序にも「適用完了からデプロイ完了までの間、**旧コードが新スキーマの上で動く**」窓が残る（deploy 失敗時はその状態が続く）。そこで運用ルールとして、**マイグレーションは既存コードでも動く形（後方互換・追加的）で書く**。列の rename や drop が必要になったら、1 回のマイグレーションでやらず「新列を追加 → コードを移行 → 後続 STEP で旧列を削除」と分割する
 - **認証は Secrets**：リポジトリの Secrets に登録した `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を wrangler-action に渡す。ローカルの `wrangler login`（ブラウザ認証）は CI では使えないため、API トークン方式を使う
-- **デプロイは途中でキャンセルされない**：concurrency の `cancel-in-progress` は main への push では false（§5 の全文コメント参照）。デプロイが途中で打ち切られて本番が中途半端になる事態を防ぐ
+- **デプロイ中の自動キャンセルはされない**：concurrency の `cancel-in-progress` は main への push では false（設定と解説は [ci-cd.yml](../.github/workflows/ci-cd.yml) 冒頭の concurrency コメント）。ただし絶対ではなく、job の timeout（10 分）や Actions 画面からの手動 Cancel では途中で止まりうる。止まった場合は §5 の「デプロイが red になったら」に従って復旧する
 
 手動デプロイの手順（notes/ のデプロイ手順メモ）は、初回セットアップやトラブル時の切り分け用として引き続き有効。
 
@@ -59,5 +60,8 @@ main への push（= PR のマージ）で `ci` job が成功したときだけ�
 - **`vp install` には `--frozen-lockfile` を明示する**：実は CI 環境では pnpm のデフォルトでも lockfile 厳守になる（`CI=true` のとき `frozen-lockfile` が既定で有効になることが pnpm の公式ドキュメントに明記されている）。それでもフラグを書くのは、「ローカルと同じ wrangler / workerd を CI でも使う」という意図を、デフォルト任せにせずコマンド自体に残すため
 - **CI が red になったら**：Actions タブで失敗したステップのログを見る。ローカルで同じコマンド（`vp check` など）を実行すれば再現できるはず。ローカルで通るのに CI で落ちる場合は、依存バージョンのズレ（lockfile のコミット忘れ）や生成ファイルの差分を疑う
 - **`wrangler.jsonc` の `compatibility_date`**：lockfile で固定された workerd が対応している日付にする必要がある（wrangler 更新時に注意）。CI も `--frozen-lockfile` で同じ workerd を使うため、ローカルで通れば CI でも通る
-- **fork からの PR**：GitHub の仕様で Secrets は fork からの PR には渡らない。`ci` job は Secrets を使わないので問題なく動く。Secrets を使う `deploy` job は `if: github.event_name == 'push'` により PR ではそもそも実行されない
-- **デプロイが red になったら**：本番は直前のデプロイのまま残る（失敗したデプロイで上書きされることはない）。Actions のログで「マイグレーション適用」と「deploy」のどちらで失敗したかを確認し、ローカルから同じコマンド（`wrangler d1 migrations apply todo-app-db --remote` / `vp run deploy`）で切り分けられる
+- **fork からの PR**：GitHub の仕様で Secrets は fork からの PR には渡らない。`ci` job は Secrets を使わないので問題なく動く。Secrets を使う `deploy` job は `if` 条件（push かつ main ブランチ）により PR ではそもそも実行されない
+- **デプロイが red になったら**：Worker は直前のデプロイのまま残るが、**マイグレーションは適用済みの可能性がある**。Actions のログでどちらのステップで失敗したかをまず確認する
+  - マイグレーション適用の失敗 → 本番は無傷。原因を直して再デプロイすればよい
+  - deploy の失敗 → 本番が「新スキーマ × 旧コード」になっている。後方互換ルール（§4）を守っていれば動き続けるが、**速やかに再デプロイする**。ローカルから `vp run deploy` を実行するのが確実（マイグレーションの手動適用は `vp exec wrangler d1 migrations apply DB --remote`）
+  - **古い run の「Re-run」で復旧しない**：Re-run はその run の（古い）コミットをビルドしてデプロイするため、より新しいデプロイが完了していた場合に本番が巻き戻る。復旧は常に「最新の main」を基準に行う

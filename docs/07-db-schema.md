@@ -63,6 +63,7 @@ flowchart LR
 - **置き場所**：リポジトリ直下の `migrations/`。ファイルは番号順（`0001_...` → `0002_...`）に、未適用のものだけが適用される
 - **作成**：`wrangler d1 migrations create todo-app-db create_todos` で空の SQL ファイルが生成されるので、そこに §1 の `CREATE TABLE` を書く
 - **適用**：`wrangler d1 migrations apply todo-app-db --local`（ローカル）／ `--remote`（本番）
+- **書き方のルール**：マイグレーションは既存コードでも動く形（後方互換・追加的）で書く。本番への適用はデプロイと同時ではないため、旧コードが新スキーマの上で動く時間が必ず生じる（理由の詳細は [10 §4](./10-ci-cd.md#4-deploy-job自動デプロイ)）
 
 D1 を使うには `wrangler.jsonc` に **binding**（Worker のコードから D1 を参照するための名前）を登録する。
 
