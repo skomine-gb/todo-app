@@ -20,16 +20,15 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ローカルの検証コマンド（[05 §5](./05-directory-and-steps.md#5-検証コマンド)）と同じものを GitHub 上でも実行する。**CI はローカル検証の代わりではなく保険**。ローカルで通してから push する運用は変わらない。
 
-| ステップ                                | 内容                                                                                          |
-| --------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `actions/checkout`                      | リポジトリのコードを CI マシンに取得                                                          |
-| `voidzero-dev/setup-vp`                 | Vite+ 公式アクション。vp CLI・Node.js・pnpm のセットアップと依存キャッシュをこれ 1 つで行う   |
-| `vp install --frozen-lockfile`          | lockfile どおりに依存をインストール。ローカルと同じバージョンの wrangler / workerd が使われる |
-| `vp run types` + `git diff --exit-code` | 型定義ファイルを再生成し、コミット済み内容とのズレ（`vp run types` のコミット忘れ）を検出     |
-| `vp check`                              | 整形・Lint・型チェック                                                                        |
-| `vp test`                               | フロントエンドのテスト（jsdom）                                                               |
-| `vp run test:worker`                    | バックエンドのテスト（Workers ランタイム）                                                    |
-| `vp build`                              | 本番と同じ手順でビルドできることを確認                                                        |
+| ステップ                       | 内容                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `actions/checkout`             | リポジトリのコードを CI マシンに取得                                                          |
+| `voidzero-dev/setup-vp`        | Vite+ 公式アクション。vp CLI・Node.js・pnpm のセットアップと依存キャッシュをこれ 1 つで行う   |
+| `vp install --frozen-lockfile` | lockfile どおりに依存をインストール。ローカルと同じバージョンの wrangler / workerd が使われる |
+| `vp check`                     | 整形・Lint・型チェック                                                                        |
+| `vp test`                      | フロントエンドのテスト（jsdom）                                                               |
+| `vp run test:worker`           | バックエンドのテスト（Workers ランタイム）                                                    |
+| `vp build`                     | 本番と同じ手順でビルドできることを確認                                                        |
 
 `setup-vp` が `vp` を CI マシンの PATH に入れるため、検証コマンドはローカルとまったく同じ書き方になる。バージョンの情報源はワークフローの外に 1 か所ずつ：pnpm は `package.json` の `devEngines.packageManager`、Node.js は `.node-version`（ローカルの Vite+ も CI の `setup-vp` も同じファイルを読むため、二重管理にならない）。
 
@@ -39,6 +38,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ## 5. 運用メモ
 
+- **生成ファイル（`worker-configuration.d.ts`）の鮮度チェックは pre-push フックで行う**：[.vite-hooks/pre-push](../.vite-hooks/pre-push) が push の直前に `vp run types` を実行し、コミット済み内容とのズレ（`wrangler.jsonc` 変更後のコミット忘れ）を検出する。CI で数分待って気づくより手元で数秒で気づく方が速い、というレビュー指摘（シフトレフト）による。フックは `--no-verify` で飛ばせるが、型定義が古い場合の多くは CI の `vp check`（型チェック）が別途エラーにする
 - **アクションはコミット SHA で固定する**：`uses:` のタグ（`@v5` など）は上流で別のコミットに付け替え可能で、サプライチェーン攻撃の入り口になる。[pinact](https://github.com/suzuki-shunsuke/pinact) で SHA 固定しており、更新は `pinact run -u` で行う（最新化と SHA 固定をまとめてやってくれる）
 - **`vp install` には `--frozen-lockfile` を明示する**：実は CI 環境では pnpm のデフォルトでも lockfile 厳守になる（`CI=true` のとき `frozen-lockfile` が既定で有効になることが pnpm の公式ドキュメントに明記されている）。それでもフラグを書くのは、「ローカルと同じ wrangler / workerd を CI でも使う」という意図を、デフォルト任せにせずコマンド自体に残すため
 - **CI が red になったら**：Actions タブで失敗したステップのログを見る。ローカルで同じコマンド（`vp check` など）を実行すれば再現できるはず。ローカルで通るのに CI で落ちる場合は、依存バージョンのズレ（lockfile のコミット忘れ）や生成ファイルの差分を疑う

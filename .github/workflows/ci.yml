@@ -55,18 +55,8 @@ jobs:
       # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
       - run: vp install --frozen-lockfile
 
-      # 型定義ファイルを自分で再生成してから、コミット済みの内容と比較する。
-      # 差分が出る＝「wrangler.jsonc の変更後に vp run types の結果をコミットし忘れた」を検出できる。
-      # （install 時の postinstall でも再生成されるが、その副作用に頼らず明示的に実行して、
-      # 　このステップ単体で成立するようにしている。--stat は失敗ログを 1 行に抑えるため）
-      - name: 生成ファイル（worker-configuration.d.ts）に差分がないか確認
-        run: |
-          vp run types
-          vp fmt worker-configuration.d.ts --write
-          git diff --stat --exit-code worker-configuration.d.ts || {
-            echo "::error::worker-configuration.d.ts が最新ではありません。ローカルで vp run types を実行してコミットしてください"
-            exit 1
-          }
+      # 生成ファイル（worker-configuration.d.ts）の鮮度チェックは CI ではなく
+      # pre-push フック（.vite-hooks/pre-push）で行う。push 前に手元で数秒で検出できるため。
 
       # ここから下はローカルの検証コマンドと完全に同じ（setup-vp が vp を PATH に入れるため）
 
