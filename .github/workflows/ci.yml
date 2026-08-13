@@ -1,0 +1,70 @@
+# CI（継続的インテグレーション）
+# PR の作成・更新のたびに「整形・Lint・型チェック・テスト・ビルド」を自動実行し、
+# ローカルの STEP 完了基準（vp check / vp test / vp run test:worker）と同じ検証を GitHub 上でも保証する。
+# 詳細は docs/10-ci-cd.md を参照。
+
+name: CI
+
+on:
+  # PR の作成時・更新時（push のたび）に実行される
+  pull_request:
+  # main へ push（= PR のマージ）されたときにも実行される
+  push:
+    branches: [main]
+
+# 同じ PR に連続で push したとき、走行中の古い実行をキャンセルする節約設定。
+# main への push では走行中の run をキャンセルしない。なお GitHub の仕様で、同じグループに
+# 待機できる run は 1 件までのため、短時間に連続マージすると中間コミットの待機中 run は
+# 最新のものに置き換えられる（最新コミットの run は必ず実行されるので、結果が古いままにはならない）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# ジョブに渡される GITHUB_TOKEN の権限。この CI はコードを読んで検証するだけなので
+# 読み取り専用に絞る（pnpm install が実行する依存パッケージのスクリプトにも
+# 書き込み権限を見せないための安全策）。
+permissions:
+  contents: read
+
+# アクション（uses:）はタグではなくコミット SHA で固定している（# 後ろのバージョンは人間用のラベル）。
+# タグは上流で別のコミットに付け替えられる可能性があり、サプライチェーン攻撃の入り口になるため。
+# 更新するときは `pinact run -u` を実行して、最新化と SHA 固定をまとめて行う。
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    # 通常 2〜3 分で終わるパイプライン。指定しないと上限が 360 分になり、
+    # テストがハングしたときにランナー（無料枠の実行時間）を浪費してしまう
+    timeout-minutes: 10
+    steps:
+      # リポジトリのコードを CI マシンに取得する
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Vite+ 公式のセットアップアクション。vp CLI・Node.js・pnpm の用意と依存キャッシュを
+      # これ 1 つで面倒を見る。バージョンはどちらもここには書かない＝二重管理にならない：
+      # - pnpm: package.json の devEngines.packageManager から解決
+      # - Node.js: .node-version から解決（ローカルの Vite+ も同じファイルを読む）
+      - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
+        with:
+          node-version-file: .node-version
+          cache: true
+          # デフォルトは true で、アクションが暗黙に vp install を実行してしまう。
+          # インストールは次のステップで（--frozen-lockfile を明示して）1回だけ行う
+          run-install: false
+
+      # lockfile（pnpm-lock.yaml）どおりに依存を入れる。
+      # --frozen-lockfile により、ローカルと同じバージョンの wrangler / workerd が CI でも使われる
+      - run: vp install --frozen-lockfile
+
+      # ここから下はローカルの検証コマンドと完全に同じ（setup-vp が vp を PATH に入れるため）
+
+      # 整形・Lint・型チェック
+      - run: vp check
+
+      # フロントエンドのテスト（jsdom）
+      - run: vp test
+
+      # バックエンドのテスト（Workers ランタイム = workerd 上で実行）
+      - run: vp run test:worker
+
+      # 本番と同じ手順でビルドできることを確認（dist/client + Worker 本体）
+      - run: vp build

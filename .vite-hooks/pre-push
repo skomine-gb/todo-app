@@ -1,0 +1,8 @@
+# push 前に worker-configuration.d.ts（wrangler types の生成物）が最新かを確認する。
+# wrangler.jsonc を変更したのに vp run types の結果をコミットし忘れたまま push するのを防ぐ。
+vp run types
+vp fmt worker-configuration.d.ts --write
+git diff --stat --exit-code worker-configuration.d.ts || {
+  echo "worker-configuration.d.ts が最新ではありません。変更をコミットしてから push してください"
+  exit 1
+}

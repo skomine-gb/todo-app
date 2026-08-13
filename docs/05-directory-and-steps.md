@@ -93,6 +93,8 @@ STEP 7（仕上げ）は番号を残したまま **フェーズ2（STEP 8〜12�
 
 最初に `vp install` → `vp dev` で開始する。環境に不調があれば `vp env doctor`。
 
+`vp check`・`vp test`・`vp run test:worker` は、PR ごとに GitHub Actions でも自動実行される（→ [10](./10-ci-cd.md)）。
+
 ## 6. 完成チェックリスト
 
 [01 の機能要件](./01-requirements.md#3-機能要件) との対応：
