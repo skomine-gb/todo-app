@@ -53,7 +53,7 @@ flowchart TD
 
 各 STEP の終わりに `vp check`・`vp test`・`vp run test:worker` を通し、`vp dev` でブラウザ確認する（[05](./05-directory-and-steps.md) §5）。
 
-本番デプロイ（Cloudflare への公開）は STEP には含めない。手順は notes/ のデプロイ手順メモにまとめてあり、フェーズ2 完了後に任意で行う。
+本番デプロイ（Cloudflare への公開）は STEP には含めない。main へのマージで GitHub Actions が自動的にデプロイする（[10](./10-ci-cd.md) §4。手動の手順は notes/ のデプロイ手順メモ）。**main へのマージ = 即本番公開**なので、動かない状態のコードを main に入れない。
 
 ## 4. 完成チェックリスト
 
@@ -71,4 +71,4 @@ flowchart TD
 - 順番は「**土台（STEP 8）→ API（STEP 9〜10）→ フロント結合（STEP 11〜12）**」。各 STEP が動く状態で終わる
 - STEP 11 は `useTodos` の中身を SWR に置き換えるだけ。**公開 API を変えないので、コンポーネントは1行も触らない**のが答え合わせ
 - 読み込み中・エラー表示（STEP 12）は SWR 化と分けて、1 PR 1 論点を保つ
-- フェーズ2 が終わったら STEP 7（仕上げ）に戻る。デプロイは任意（notes/ のメモ参照）
+- フェーズ2 が終わったら STEP 7（仕上げ）に戻る。デプロイは main へのマージで自動実行される（→ [10](./10-ci-cd.md)）

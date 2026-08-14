@@ -9,7 +9,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ## 2. トリガーと job の対応
 
-ワークフローの定義は [ci.yml](../.github/workflows/ci.yml)（検証）と [deploy.yml](../.github/workflows/deploy.yml)（デプロイ）の 2 ファイル。分けるのは可読性のため —— デプロイは step が増えやすく、1 ファイルに同居させると肥大化する（PR #35 のレビュー指摘による）。
+ワークフローの定義は [ci.yml](../.github/workflows/ci.yml)（検証）と [deploy.yml](../.github/workflows/deploy.yml)（デプロイ）の 2 ファイル。分けるのは可読性のため —— デプロイは step が増えやすく、1 ファイルに同居させると肥大化する。
 
 「CI が通ったら CD」の保証は、ワークフロー間の連携ではなく **deploy.yml 自身が検証を最初から実行する**ことで実現している。検証ステップのどれかが落ちれば、デプロイのステップには到達しない。`workflow_run` トリガー（別ワークフローの完了をきっかけに起動する仕組み）でも連携できるが、ワークフロー名の文字列頼みになり壊れやすいので使わない。
 
@@ -37,15 +37,15 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 ## 4. deploy job（自動デプロイ）
 
-[deploy.yml](../.github/workflows/deploy.yml) は main への push（= PR のマージ）と手動実行（`workflow_dispatch`）で動く。最初に ci と同じ検証をマージコミットに対して実行し直し、どれかが落ちればデプロイに進まない —— 検証を通ったコードだけが本番に届く。手動実行は任意のブランチから起動できてしまうため、main 以外は job の `if` で止めている。
+[deploy.yml](../.github/workflows/deploy.yml) は main への push（= PR のマージ）と手動実行（`workflow_dispatch`）で動く。最初に ci と同じ検証をマージコミットに対して実行し直し、どれかが落ちればデプロイに進まない —— 検証を通ったコードだけが本番に届く。手動実行は任意のブランチから起動できてしまうため、main 以外は job の `if` で skip する（事故防止のガードで、厳密な強制ではない。強制が必要になったら GitHub Environments の deployment branches 制限で「main からしかデプロイできない」をサーバー側に持たせる）。
 
-| ステップ                                               | 内容                                                                       |
-| ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| checkout〜`vp install`                                 | `ci` job（[§3](#3-ci-job-がやること)）と同じセットアップ                   |
-| `vp check` / `vp test` / `vp run test:worker`          | `ci` job と同じ検証。落ちれば以降のステップに進まない                      |
-| `vp build`                                             | デプロイする成果物を作る（`dist/client` = SPA と Worker 本体）             |
-| `wrangler-action`（`d1 migrations apply DB --remote`） | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)） |
-| `wrangler-action`（`deploy`）                          | Worker と SPA（Static Assets）を本番へデプロイ                             |
+| ステップ                                               | 内容                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| checkout〜`vp install`                                 | `ci` job（[§3](#3-ci-job-がやること)）と同じセットアップ                       |
+| `vp check` / `vp test` / `vp run test:worker`          | `ci` job と同じ検証。落ちれば以降のステップに進まない                          |
+| `vp build`                                             | デプロイする成果物を作る（`dist/client` = SPA、`dist/todo_app` = Worker 本体） |
+| `wrangler-action`（`d1 migrations apply DB --remote`） | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)）     |
+| `wrangler-action`（`deploy`）                          | Worker と SPA（Static Assets）を本番へデプロイ                                 |
 
 設計上のポイント：
 
@@ -53,7 +53,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 - **DB は binding 名で指定**：`d1 migrations apply DB` の `DB` は wrangler.jsonc の binding 名。データベース名（`todo-app-db`）を書き写すと二重管理になるうえ、名前が config とズレたとき wrangler はアカウント内を名前で検索するため、古い DB に黙って適用される事故がありうる
 - **マイグレーション → デプロイの順**：新しいコードは新しいスキーマを前提に動くため、先にスキーマを合わせる。ただしこの順序にも「適用完了からデプロイ完了までの間、**旧コードが新スキーマの上で動く**」窓が残る（deploy 失敗時はその状態が続く）。そこで運用ルールとして、**マイグレーションは既存コードでも動く形（後方互換・追加的）で書く**。列の rename や drop が必要になったら、1 回のマイグレーションでやらず「新列を追加 → コードを移行 → 後続 STEP で旧列を削除」と分割する
 - **認証は Secrets**：リポジトリの Secrets に登録した `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を wrangler-action に渡す。ローカルの `wrangler login`（ブラウザ認証）は CI では使えないため、API トークン方式を使う
-- **デプロイ中の自動キャンセルはされない**：`cancel-in-progress: false` で、走行中のデプロイは新しい run に割り込まれない（設定と解説は [deploy.yml](../.github/workflows/deploy.yml) 冒頭の concurrency コメント）。ただし絶対ではなく、job の timeout（10 分）や Actions 画面からの手動 Cancel では途中で止まりうる。止まった場合は §5 の「デプロイが red になったら」に従って復旧する
+- **デプロイ中の自動キャンセルはされない**：`cancel-in-progress: false` で、走行中のデプロイは新しい run に割り込まれない（設定と解説は [deploy.yml](../.github/workflows/deploy.yml) 冒頭の concurrency コメント）。ただし絶対ではなく、job の timeout（15 分）や Actions 画面からの手動 Cancel では途中で止まりうる。止まった場合は §5 の「デプロイが red になったら」に従って復旧する
 
 手動デプロイの手順（notes/ のデプロイ手順メモ）は、初回セットアップやトラブル時の切り分け用として引き続き有効。
 
@@ -67,5 +67,5 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 - **fork からの PR**：GitHub の仕様で Secrets は fork からの PR には渡らない。`ci` job は Secrets を使わないので問題なく動く。Secrets を使う deploy.yml は、トリガーが main への push と手動実行だけなので PR では起動しない
 - **デプロイが red になったら**：Worker は直前のデプロイのまま残るが、**マイグレーションは適用済みの可能性がある**。Actions のログでどちらのステップで失敗したかをまず確認する
   - マイグレーション適用の失敗 → 適用済みの分だけスキーマが進んでいる可能性がある（複数ファイルは 1 つずつ順に適用され、失敗したファイルは「適用済み」と記録されない）。後方互換ルール（§4）を守っていれば旧コードはそのまま動く。原因を直して再マージすれば、未適用のものだけが再適用される
-  - deploy の失敗 → 本番が「新スキーマ × 旧コード」になっている。後方互換ルール（§4）を守っていれば動き続けるが、**速やかに再デプロイする**。Actions タブで Deploy ワークフローを「Run workflow」（branch: main）から手動実行するのが確実（検証込みで最新の main をデプロイし直せる）。ローカルからなら `vp run deploy`（マイグレーションの手動適用は `vp exec wrangler d1 migrations apply DB --remote`）
+  - deploy の失敗 → 本番が「新スキーマ × 旧コード」になっている。後方互換ルール（§4）を守っていれば動き続けるが、**速やかに再デプロイする**。Actions タブで Deploy ワークフローを「Run workflow」から手動実行するのが確実（検証込みで最新の main をデプロイし直せる）。**ブランチは必ず main を選ぶ** —— 別のブランチを選ぶと job が skip されて run は green に見えるが、何もデプロイされていない。ローカルからなら `vp run deploy`（マイグレーションの手動適用は `vp exec wrangler d1 migrations apply DB --remote`）
   - **古い run の「Re-run」で復旧しない**：Re-run はその run の（古い）コミットをビルドしてデプロイするため、より新しいデプロイが完了していた場合に本番が巻き戻る。やり直しは上記の手動実行（最新の main が対象）で行う
