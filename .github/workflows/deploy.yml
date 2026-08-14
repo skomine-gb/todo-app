@@ -33,13 +33,19 @@ permissions:
 # アクションはコミット SHA で固定（理由は ci.yml と docs/10 §5 を参照。更新は `pinact run -u`）
 jobs:
   deploy:
-    # 動かす条件は 2 つ：
-    # - CI の完了で起動した場合：CI が成功したときだけ（失敗した完了でも workflow_run は発火するため必須）
-    # - 手動実行の場合：main ブランチからだけ。これは事故防止のガードであって強制ではない
-    #   （選んだブランチ側のファイルが実行されるため、ブランチ上で書き換えれば通ってしまう）。
+    # 動かす条件：
+    # - CI の完了で起動した場合、「成功」かつ「push（= main へのマージ）で走った CI」だけ。
+    #   conclusion のチェックは必須（失敗した完了でも workflow_run は発火する）。
+    #   event のチェックも必須：ci.yml は PR でも走るため、fork の main ブランチから PR を出されると
+    #   その CI 完了でも branches: [main] フィルタ（head ブランチ名で判定される）を通ってしまう。
+    #   push に絞ることで、部外者の PR が本番デプロイを発火させる経路を塞ぐ
+    # - 手動実行の場合：main ブランチからだけ（workflow_run では github.ref は常にデフォルトブランチの
+    #   ため、この条件は手動実行にだけ効く）。これは事故防止のガードであって強制ではない。
     #   厳密に強制したくなったら GitHub Environments の deployment branches 制限を使う（docs/10 §4）
     if: >-
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' ||
        github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -48,8 +54,13 @@ jobs:
     # ハング対策としてだけ効く余裕のある値にする
     timeout-minutes: 15
     steps:
-      # workflow_run で起動した場合も、checkout が取得するのは main の最新コミット
+      # CI が検証したコミット（workflow_run.head_sha）をそのままデプロイする。
+      # ref を指定しないと「デプロイ時点の main の最新」が取られ、連続マージのとき
+      # CI がまだ終わっていないコミットを出荷しうる。手動実行には head_sha がないため
+      # main の最新（github.ref）にフォールバックする
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
         with:

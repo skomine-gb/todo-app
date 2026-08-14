@@ -25,7 +25,7 @@ Issueで宣言した「やること」と実装の対応を書く。
 - [ ] `vp check`（整形・Lint・型チェック）が通る
 - [ ] `vp test` が通る
 - [ ] `vp run test:worker`（バックエンドのテスト）が通る
-- [ ] `migrations/` を変更した場合：後方互換（追加的）になっている（[docs/07 §3](../blob/main/docs/07-db-schema.md)）
+- [ ] `migrations/` を変更した場合：後方互換（追加的）になっている（[docs/07 §3](../blob/main/docs/07-db-schema.md#3-マイグレーション)）
 - [ ] `vp dev` でブラウザ確認した
 - [ ] CI（GitHub Actions）が green
 
