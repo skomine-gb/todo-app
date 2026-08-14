@@ -63,7 +63,7 @@ gh api repos/<owner>/<repo>/git/tags/<タグのsha> -q '.object | {type, sha}'
 
 ## このリポジトリでの適用状況
 
-- `.github/workflows/ci-cd.yml`（旧 ci.yml）の全アクションを SHA 固定済み（PR #33 のレビュー対応。CD 追加時の cloudflare/wrangler-action も同様に固定）
+- `.github/workflows/ci.yml` と `deploy.yml` の全アクションを SHA 固定済み（PR #33 のレビュー対応。CD 追加時の cloudflare/wrangler-action も同様に固定）
 - 運用ルールは [docs/10-ci-cd.md](../docs/10-ci-cd.md) §5 の運用メモに記載
 
 ## 参考リンク
