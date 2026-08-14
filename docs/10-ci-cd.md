@@ -52,7 +52,7 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 設計上のポイント：
 
-- **wrangler は `vp exec` で直接実行する**：`vp install` で node_modules に入った lockfile どおりの wrangler が使われ、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）。§5 の復旧コマンドとも完全に同じ書き方。当初は Cloudflare 公式の [wrangler-action](https://github.com/cloudflare/wrangler-action) を使っていたが、このプロジェクトでは動かない —— アクションは pnpm か npm で wrangler を起動しようとするが、ランナーに pnpm コマンドはなく（Vite+ は pnpm を内部管理していて PATH に公開しない）、npm は package.json の `devEngines.packageManager: pnpm` の宣言を強制して実行を拒否する（`EBADDEVENGINES`。npm 11.17 で確認）
+- **wrangler は `vp exec` で直接実行する**：`vp install` で node_modules に入った lockfile どおりの wrangler が使われ、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）。§5 の復旧コマンド（マイグレーションの手動適用）とも完全に同じ書き方。当初は Cloudflare 公式の [wrangler-action](https://github.com/cloudflare/wrangler-action) を使っていたが、このプロジェクトでは動かない —— アクションは pnpm か npm で wrangler を起動しようとするが、ランナーに pnpm コマンドはなく（Vite+ は pnpm を内部管理していて PATH に公開しない）、npm は package.json の `devEngines.packageManager: pnpm` の宣言を強制して実行を拒否する（`EBADDEVENGINES`。npm 11.17 で確認）
 - **DB は binding 名で指定**：`d1 migrations apply DB` の `DB` は wrangler.jsonc の binding 名。データベース名（`todo-app-db`）を書き写すと二重管理になるうえ、名前が config とズレたとき wrangler はアカウント内を名前で検索するため、古い DB に黙って適用される事故がありうる
 - **マイグレーション → デプロイの順**：新しいコードは新しいスキーマを前提に動くため、先にスキーマを合わせる。ただしこの順序にも「適用完了からデプロイ完了までの間、**旧コードが新スキーマの上で動く**」窓が残る（deploy 失敗時はその状態が続く）。そこで運用ルールとして、**マイグレーションは既存コードでも動く形（後方互換・追加的）で書く**。列の rename や drop が必要になったら、1 回のマイグレーションでやらず「新列を追加 → コードを移行 → 後続 STEP で旧列を削除」と分割する
 - **認証は Secrets**：リポジトリの Secrets に登録した `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を、wrangler を実行するステップの `env` として渡す（wrangler は環境変数から認証情報を読む）。ローカルの `wrangler login`（ブラウザ認証）は CI では使えないため、API トークン方式を使う
