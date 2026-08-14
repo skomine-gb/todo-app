@@ -16,8 +16,10 @@ on:
 # デプロイは並行させない。走行中の run は自動キャンセルしない（本番が中途半端になるのを防ぐ）。
 # 同じグループに待機できる run は 1 件までのため、短時間に連続マージしても
 # 最新コミットのデプロイは必ず実行される。
+# group に ref を含めるのは、別ブランチからの手動実行（job は skip される）が main と同じ
+# グループに入り、待機中の main のデプロイを置き換えて消してしまうのを防ぐため
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 # デプロイの認証は GITHUB_TOKEN ではなく Cloudflare の Secrets で行うため、読み取り専用に絞る
@@ -27,11 +29,16 @@ permissions:
 # アクションはコミット SHA で固定（理由は ci.yml と docs/10 §5 を参照。更新は `pinact run -u`）
 jobs:
   deploy:
-    # workflow_dispatch は任意のブランチから実行できてしまうため、main 以外からの
-    # 本番デプロイをここで確実に止める
+    # workflow_dispatch は任意のブランチから実行できてしまうため、main 以外なら skip する。
+    # これは事故防止のガードであって強制ではない（選んだブランチ側のファイルが実行されるため、
+    # ブランチ上で書き換えれば通ってしまう）。厳密に強制したくなったら GitHub Environments の
+    # deployment branches 制限を使う（docs/10 §4）
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 検証（2〜3 分）に加えて Cloudflare API 依存のマイグレーション適用・デプロイが乗るため、
+    # ci job より余裕を持たせる。マイグレーション適用後にタイムアウトすると本番が
+    # 「新スキーマ × 旧コード」で残るため、ハング対策としてだけ効く値にする
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -51,7 +58,7 @@ jobs:
 
       - run: vp run test:worker
 
-      # デプロイする成果物を作る（dist/client = SPA と Worker 本体）
+      # デプロイする成果物を作る（dist/client = SPA、dist/todo_app = Worker 本体）
       - run: vp build
 
       # 本番 D1 に未適用のマイグレーションだけを適用する（デプロイより先。順序の理由と
