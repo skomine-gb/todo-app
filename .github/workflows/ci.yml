@@ -3,6 +3,8 @@
 # ローカルの STEP 完了基準（vp check / vp test / vp run test:worker）と同じ検証を GitHub 上でも保証する。
 # 本番への自動デプロイ（CD）は deploy.yml が担当する。詳細は docs/10-ci-cd.md を参照。
 
+# この name は deploy.yml の workflow_run（workflows: [CI]）から文字列で参照されている。
+# 変更するときは deploy.yml 側も揃えること（ズレると main マージ後のデプロイが黙って動かなくなる）
 name: CI
 
 on:
