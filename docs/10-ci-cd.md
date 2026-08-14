@@ -43,19 +43,19 @@ GitHub Actions（GitHub が提供する自動実行の仕組み。リポジト�
 
 [deploy.yml](../.github/workflows/deploy.yml) は、main で `CI` が成功したとき（`workflow_run`。§2）と手動実行（`workflow_dispatch`）で動く。検証は起動条件である CI が済ませているため、deploy はビルドとデプロイに専念する。手動実行は任意のブランチから起動できてしまうため、main 以外は job の `if` で skip する（事故防止のガードで、厳密な強制ではない。強制が必要になったら GitHub Environments の deployment branches 制限で「main からしかデプロイできない」をサーバー側に持たせる）。
 
-| ステップ                                               | 内容                                                                                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| checkout〜`vp install`                                 | `ci` job（[§3](#3-ci-job-がやること)）と同じセットアップ。**CI が検証したコミット**（`workflow_run.head_sha`）を取得する |
-| `vp build`                                             | デプロイする成果物を作る（`dist/client` = SPA、`dist/todo_app` = Worker 本体）                                           |
-| `wrangler-action`（`d1 migrations apply DB --remote`） | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)）                                               |
-| `wrangler-action`（`deploy`）                          | Worker と SPA（Static Assets）を本番へデプロイ                                                                           |
+| ステップ                                           | 内容                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| checkout〜`vp install`                             | `ci` job（[§3](#3-ci-job-がやること)）と同じセットアップ。**CI が検証したコミット**（`workflow_run.head_sha`）を取得する |
+| `vp build`                                         | デプロイする成果物を作る（`dist/client` = SPA、`dist/todo_app` = Worker 本体）                                           |
+| `vp exec wrangler d1 migrations apply DB --remote` | 本番 D1 に未適用のマイグレーションだけを適用（[07 §3](./07-db-schema.md)）                                               |
+| `vp exec wrangler deploy`                          | Worker と SPA（Static Assets）を本番へデプロイ                                                                           |
 
 設計上のポイント：
 
-- **[cloudflare/wrangler-action](https://github.com/cloudflare/wrangler-action) を使う**：Cloudflare 公式のアクションで、API トークンの受け渡しと wrangler の実行を面倒見てくれる。`wranglerVersion` は指定しない —— `vp install` で node_modules に入った lockfile どおりの wrangler をアクションがそのまま使うため、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）。`packageManager: npm` の明示は必須 —— 未指定だと pnpm-lock.yaml から pnpm と推測されるが、GitHub のランナーに pnpm コマンドはなく（Vite+ も pnpm を内部管理していて PATH に公開しない）、実行時エラーになる。npx は存在し、node_modules の wrangler をそのまま使う
+- **wrangler は `vp exec` で直接実行する**：`vp install` で node_modules に入った lockfile どおりの wrangler が使われ、テスト・ローカル・デプロイのすべてが同じバージョンになる（二重管理にならない）。§5 の復旧コマンド（マイグレーションの手動適用）とも完全に同じ書き方。当初は Cloudflare 公式の [wrangler-action](https://github.com/cloudflare/wrangler-action) を使っていたが、このプロジェクトでは動かない —— アクションは pnpm か npm で wrangler を起動しようとするが、ランナーに pnpm コマンドはなく（Vite+ は pnpm を内部管理していて PATH に公開しない）、npm は package.json の `devEngines.packageManager: pnpm` の宣言を強制して実行を拒否する（`EBADDEVENGINES`。npm 11.17 で確認）
 - **DB は binding 名で指定**：`d1 migrations apply DB` の `DB` は wrangler.jsonc の binding 名。データベース名（`todo-app-db`）を書き写すと二重管理になるうえ、名前が config とズレたとき wrangler はアカウント内を名前で検索するため、古い DB に黙って適用される事故がありうる
 - **マイグレーション → デプロイの順**：新しいコードは新しいスキーマを前提に動くため、先にスキーマを合わせる。ただしこの順序にも「適用完了からデプロイ完了までの間、**旧コードが新スキーマの上で動く**」窓が残る（deploy 失敗時はその状態が続く）。そこで運用ルールとして、**マイグレーションは既存コードでも動く形（後方互換・追加的）で書く**。列の rename や drop が必要になったら、1 回のマイグレーションでやらず「新列を追加 → コードを移行 → 後続 STEP で旧列を削除」と分割する
-- **認証は Secrets**：リポジトリの Secrets に登録した `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を wrangler-action に渡す。ローカルの `wrangler login`（ブラウザ認証）は CI では使えないため、API トークン方式を使う
+- **認証は Secrets**：リポジトリの Secrets に登録した `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を、wrangler を実行するステップの `env` として渡す（wrangler は環境変数から認証情報を読む）。ローカルの `wrangler login`（ブラウザ認証）は CI では使えないため、API トークン方式を使う
 - **デプロイ中の自動キャンセルはされない**：`cancel-in-progress: false` で、走行中のデプロイは新しい run に割り込まれない（設定と解説は [deploy.yml](../.github/workflows/deploy.yml) 冒頭の concurrency コメント）。ただし絶対ではなく、job の timeout（15 分）や Actions 画面からの手動 Cancel では途中で止まりうる。止まった場合は §5 の「デプロイが red になったら」に従って復旧する
 
 手動デプロイの手順（notes/ のデプロイ手順メモ）は、初回セットアップやトラブル時の切り分け用として引き続き有効。
